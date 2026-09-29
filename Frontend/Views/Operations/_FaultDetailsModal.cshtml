@@ -1,0 +1,5 @@
+@model FaultRecord
+<div class="modal fade" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Arıza Detayı</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
+    <div class="modal-body"><dl class="row"><dt class="col-5">Makine</dt><dd class="col-7">@Model.MachineName</dd><dt class="col-5">Tarih</dt><dd class="col-7">@Model.Date.ToString("g")</dd><dt class="col-5">Arıza türü</dt><dd class="col-7">@Model.FaultType</dd><dt class="col-5">Önem</dt><dd class="col-7">@Model.Severity</dd><dt class="col-5">Duruş</dt><dd class="col-7">@Model.DowntimeHours.ToString("0.##") saat</dd><dt class="col-5">Personel</dt><dd class="col-7">@Model.Technician</dd><dt class="col-5">Durum</dt><dd class="col-7">@(Model.Resolved ? "Kapalı" : "Açık")</dd></dl></div>
+</div></div></div>

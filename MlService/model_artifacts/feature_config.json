@@ -1,0 +1,269 @@
+{
+  "modelVersion": "rf-v2-time-aware",
+  "target": "gelecek_30g_ariza",
+  "features": [
+    {
+      "name": "yas",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "son_bakimdan_gecen_gun",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "bakim_sayisi_30g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "bakim_sayisi_90g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "ariza_sayisi_30g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "ariza_sayisi_90g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "toplam_gecmis_ariza",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "hata_sayisi_7g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "hata_sayisi_30g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "durus_suresi_30g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "ort_mudahale_suresi_90g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "tekrar_ariza_sayisi_90g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "volt_ort_7g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "devir_ort_7g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "basinc_ort_7g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "titresim_ort_7g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "anomali_puani_7g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "uretim_yogunlugu_7g",
+      "type": "number",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "model",
+      "type": "string",
+      "nullable": true,
+      "requiredForModel": true
+    },
+    {
+      "name": "kritik_seviye",
+      "type": "string",
+      "nullable": true,
+      "requiredForModel": true
+    }
+  ],
+  "numericFeatureStats": {
+    "yas": {
+      "min": 0.0,
+      "max": 20.0,
+      "mean": 11.33,
+      "std": 5.828235,
+      "median": 12.0
+    },
+    "son_bakimdan_gecen_gun": {
+      "min": 1.0,
+      "max": 152.0,
+      "mean": 11.443404,
+      "std": 13.397375,
+      "median": 9.0
+    },
+    "bakim_sayisi_30g": {
+      "min": 0.0,
+      "max": 4.0,
+      "mean": 2.297234,
+      "std": 0.950551,
+      "median": 2.0
+    },
+    "bakim_sayisi_90g": {
+      "min": 0.0,
+      "max": 11.0,
+      "mean": 6.405319,
+      "std": 2.210119,
+      "median": 7.0
+    },
+    "ariza_sayisi_30g": {
+      "min": 0.0,
+      "max": 3.0,
+      "mean": 0.606809,
+      "std": 0.685387,
+      "median": 0.0
+    },
+    "ariza_sayisi_90g": {
+      "min": 0.0,
+      "max": 8.0,
+      "mean": 1.664681,
+      "std": 1.249774,
+      "median": 2.0
+    },
+    "toplam_gecmis_ariza": {
+      "min": 0.0,
+      "max": 17.0,
+      "mean": 3.681915,
+      "std": 2.913211,
+      "median": 3.0
+    },
+    "hata_sayisi_7g": {
+      "min": 0.0,
+      "max": 6.0,
+      "mean": 0.75383,
+      "std": 0.916401,
+      "median": 1.0
+    },
+    "hata_sayisi_30g": {
+      "min": 0.0,
+      "max": 13.0,
+      "mean": 3.131277,
+      "std": 1.842142,
+      "median": 3.0
+    },
+    "durus_suresi_30g": {
+      "min": 0.0,
+      "max": 920.0,
+      "mean": 136.194681,
+      "std": 172.592846,
+      "median": 0.0
+    },
+    "ort_mudahale_suresi_90g": {
+      "min": 0.0,
+      "max": 341.0,
+      "mean": 122.783396,
+      "std": 78.264542,
+      "median": 130.0
+    },
+    "tekrar_ariza_sayisi_90g": {
+      "min": 0.0,
+      "max": 7.0,
+      "mean": 0.669787,
+      "std": 0.966728,
+      "median": 0.0
+    },
+    "volt_ort_7g": {
+      "min": 165.6644,
+      "max": 185.9821,
+      "mean": 170.780042,
+      "std": 2.275484,
+      "median": 170.26215
+    },
+    "devir_ort_7g": {
+      "min": 385.0832,
+      "max": 463.6438,
+      "mean": 446.63172,
+      "std": 9.111757,
+      "median": 449.0417
+    },
+    "basinc_ort_7g": {
+      "min": 96.9964,
+      "max": 117.6282,
+      "mean": 100.83752,
+      "std": 2.510085,
+      "median": 100.1289
+    },
+    "titresim_ort_7g": {
+      "min": 38.6116,
+      "max": 49.0817,
+      "mean": 40.383437,
+      "std": 1.067939,
+      "median": 40.08995
+    },
+    "anomali_puani_7g": {
+      "min": 2.19,
+      "max": 17.07,
+      "mean": 5.400315,
+      "std": 1.898664,
+      "median": 4.785
+    },
+    "uretim_yogunlugu_7g": {
+      "min": 5.18,
+      "max": 90.43,
+      "mean": 52.663243,
+      "std": 13.358378,
+      "median": 53.665
+    }
+  },
+  "categories": {
+    "model": [
+      "model1",
+      "model2",
+      "model3",
+      "model4"
+    ],
+    "kritik_seviye": [
+      "Düşük",
+      "Kritik",
+      "Orta",
+      "Yüksek"
+    ]
+  },
+  "minimumCompletenessRate": 50.0
+}

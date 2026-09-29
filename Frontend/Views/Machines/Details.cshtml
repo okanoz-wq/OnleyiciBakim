@@ -1,0 +1,95 @@
+@model MachineDetailViewModel
+@{
+    ViewData["Title"] = Model.Machine.Name;
+    var m = Model.Machine;
+    var riskColor = m.RiskColorKey switch { "dark-red" => "#7f1d1d", "red" => "#ef4444", "amber" => "#f59e0b", _ => "#16a34a" };
+    var riskPill = m.RiskColorKey is "red" or "dark-red" ? "pill-danger" : m.RiskColorKey == "amber" ? "pill-warn" : "pill-ok";
+}
+
+<a asp-controller="Machines" asp-action="Index" class="btn btn-primary-soft btn-sm mb-3 reveal">
+    <i class="bi bi-arrow-left"></i> Makine Listesi
+</a>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-4">
+        <div class="surface-card h-100 reveal">
+            <div class="detail-label">Makine</div>
+            <div class="detail-value">@m.Name <span class="text-muted">(@m.Code)</span></div>
+            <div class="detail-label">Tip</div>
+            <div class="detail-value">@m.Type</div>
+            <div class="detail-label">Konum</div>
+            <div class="detail-value">@m.Location</div>
+            <div class="detail-label">Kurulum Tarihi</div>
+            <div class="detail-value mb-0">@m.InstallDate.ToString("dd.MM.yyyy")</div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="surface-card h-100 reveal">
+            <div class="detail-label">Risk Skoru</div>
+            <div class="stat-value mb-2" style="color:@riskColor"><span class="count-up" data-target="@m.RiskScore">0</span></div>
+            <div class="progress-thin mb-3"><div data-width="@m.RiskScore"></div></div>
+            <span class="pill @riskPill">@m.Status</span>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="surface-card h-100 reveal">
+            <div class="detail-label">Son Bakım</div>
+            <div class="detail-value">@m.LastMaintenanceDate.ToString("dd.MM.yyyy")</div>
+            <div class="detail-label">Önerilen Sonraki Bakım</div>
+            <div class="detail-value">@m.NextMaintenanceDate.ToString("dd.MM.yyyy")</div>
+            <div class="detail-label">Toplam Arıza Sayısı</div>
+            <div class="detail-value mb-0">@m.TotalFaultCount</div>
+        </div>
+    </div>
+</div>
+
+<div class="surface-card reveal">
+    <div class="section-title"><i class="bi bi-exclamation-triangle-fill"></i> Arıza Geçmişi (@Model.FaultPagination.TotalCount)</div>
+    <div class="table-responsive">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>Tarih</th>
+                    <th>Tür</th>
+                    <th>Önem</th>
+                    <th>Duruş Süresi (sa)</th>
+                    <th>Teknisyen</th>
+                    <th>Durum</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Faults.Count == 0)
+            {
+                <tr><td colspan="6" class="text-muted">Kayıtlı arıza yok.</td></tr>
+            }
+            @foreach (var f in Model.Faults)
+            {
+                var sevPill = f.Severity switch
+                {
+                    "Kritik" => "pill-danger",
+                    "Yüksek" => "pill-warn",
+                    _ => "pill-muted",
+                };
+                <tr>
+                    <td>@f.Date.ToString("dd.MM.yyyy")</td>
+                    <td>@f.FaultType</td>
+                    <td><span class="pill @sevPill">@f.Severity</span></td>
+                    <td>@f.DowntimeHours</td>
+                    <td>@f.Technician</td>
+                    <td>
+                        @if (f.Resolved)
+                        {
+                            <span class="pill pill-ok">Çözüldü</span>
+                        }
+                        else
+                        {
+                            <span class="pill pill-muted">Açık</span>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pagination" model="Model.FaultPagination" />
+</div>

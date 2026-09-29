@@ -1,0 +1,61 @@
+@model MachineListViewModel
+<div class="surface-card reveal" data-table-url="@Url.Action("Table", "Machines")">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="section-title mb-0"><i class="bi bi-list-ul"></i> Makine Listesi (@Model.Pagination.TotalCount)</div>
+        <span class="text-muted small">Sayfa @Model.Pagination.Page</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table-modern align-middle">
+            <thead><tr>
+                <th>Kod</th><th>Makine Adı</th><th>Konum</th><th>Durum</th><th>Kritiklik</th>
+                <th>Risk</th><th>Kaynak</th><th class="text-end">İşlemler</th>
+            </tr></thead>
+            <tbody>
+            @if (Model.Machines.Count == 0)
+            {
+                <tr><td colspan="8" class="text-center text-muted py-5"><i class="bi bi-inbox fs-3 d-block mb-2"></i>Filtrelere uyan makine bulunamadı.</td></tr>
+            }
+            @foreach (var m in Model.Machines)
+            {
+                var statusPill = m.Status switch { "Riskli" => "pill-danger", "İzlemede" or "Bakımda" => "pill-warn", "Pasif" => "pill-neutral", _ => "pill-ok" };
+                var riskPill = m.RiskColorKey is "red" or "dark-red" ? "pill-danger" : m.RiskColorKey == "amber" ? "pill-warn" : "pill-ok";
+                var barColor = m.RiskColorKey switch { "dark-red" => "#7f1d1d", "red" => "#ef4444", "amber" => "#f59e0b", _ => "#16a34a" };
+                var riskWidth = Math.Clamp(m.RiskScore, 0, 100)
+                    .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                <tr>
+                    <td class="text-muted">@m.Code</td>
+                    <td><div class="fw-semibold">@m.Name</div><small class="text-muted">@(m.Model ?? "Model belirtilmemiş")</small></td>
+                    <td>@m.Location</td>
+                    <td><span class="pill @statusPill">@m.Status</span></td>
+                    <td>@m.Criticality</td>
+                    <td><div class="d-flex align-items-center gap-2"><div class="risk-bar"><span role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@riskWidth" data-width="@riskWidth" style="width:@(riskWidth)%;background:@barColor"></span></div><span class="pill @riskPill">@m.RiskScore.ToString("0.##") · @m.RiskLevel</span></div></td>
+                    <td><span class="source-badge @(m.SourceSystem == "ERP" ? "source-erp" : "source-local")"><i class="bi @(m.SourceSystem == "ERP" ? "bi-cloud-check" : "bi-pc-display")"></i> @m.SourceSystem</span></td>
+                    <td class="text-end text-nowrap">
+                        <button type="button" class="btn btn-sm btn-primary-soft" title="Detay" data-modal-url="@Url.Action("DetailsModal", "Machines", new { id = m.Id })"><i class="bi bi-eye"></i></button>
+                        @if (m.CanManage)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary-soft" title="Düzenle" data-modal-url="@Url.Action("Edit", "Machines", new { id = m.Id })"><i class="bi bi-pencil"></i></button>
+                            @if (m.Status == "Pasif")
+                            {
+                                <form class="d-inline" method="post" asp-action="Activate" data-modal-form data-confirm-message="Makine aktifleştirildi.">
+                                    @Html.AntiForgeryToken()<input type="hidden" name="id" value="@m.Id" />
+                                    <button type="submit" class="btn btn-sm btn-success" title="Aktifleştir"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                </form>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-sm btn-danger-soft" title="Pasife al" data-modal-url="@Url.Action("Delete", "Machines", new { id = m.Id })"><i class="bi bi-power"></i></button>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted ms-1" title="ERP kaydı salt okunur"><i class="bi bi-lock-fill"></i></span>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pagination" model="Model.Pagination" />
+</div>

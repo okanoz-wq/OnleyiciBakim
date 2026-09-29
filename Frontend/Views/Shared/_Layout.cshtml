@@ -1,0 +1,97 @@
+@inject IConfiguration Configuration
+@{
+    var dataMode = Configuration.GetValue<bool>("Backend:UseMockData") ? "Mock Veri Modu" : "SQL Server Veri Modu";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Önleyici Bakım Sistemi</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <span class="brand-mark"><i class="bi bi-cpu-fill"></i></span>
+                <div>
+                    <div class="brand-title">Önleyici Bakım</div>
+                    <div class="brand-subtitle">Sistemi</div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")"
+                   asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-grid-1x2-fill"></i> <span>Dashboard</span>
+                </a>
+                <details class="nav-group"><summary><i class="bi bi-journal-text"></i> Tanımlar</summary>
+                    <a asp-controller="Definitions" asp-action="Index" asp-route-module="companies">Firmalar</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="branches">Şubeler</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="departments">Departmanlar</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="work-centers">İş Merkezleri</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="components">Makine Bileşenleri</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="failure-codes">Arıza Kodları</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="maintenance-types">Bakım Türleri</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="checklists">Bakım Kontrol Listeleri</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="counters">Sayaç Tanımları</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="shifts">Vardiyalar</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="teams">Ekipler</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="personnel">Personeller</a>
+                </details>
+                <details class="nav-group"><summary><i class="bi bi-sliders2"></i> Parametreler</summary>
+                    <a asp-controller="Definitions" asp-action="Index" asp-route-module="risk-rules">Risk Kural Parametreleri</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="hybrid-parameters">Hibrit Karar Parametreleri</a><a asp-controller="Definitions" asp-action="Index" asp-route-module="maintenance-recommendations">Bakım Öneri Parametreleri</a>
+                </details>
+                <details class="nav-group"><summary><i class="bi bi-gear-wide-connected"></i> Makine İşlemleri</summary>
+                    <a asp-controller="Machines" asp-action="Index">Makine Listesi</a><a asp-controller="Operations" asp-action="Index" asp-route-module="meter-readings">Sayaç / Çalışma Verileri</a><a asp-controller="Operations" asp-action="Index" asp-route-module="work-calendar">Çalışma Takvimi</a><a asp-controller="Operations" asp-action="Index" asp-route-module="transfers">Makine Transferleri</a>
+                </details>
+                <details class="nav-group"><summary><i class="bi bi-exclamation-triangle-fill"></i> Arıza Yönetimi</summary>
+                    <a asp-controller="Operations" asp-action="Index" asp-route-module="failure-report">Arıza Bildirimi</a><a asp-controller="Operations" asp-action="Index" asp-route-module="failure-actions">Müdahale ve Kapatma</a><a asp-controller="Faults" asp-action="Index">Arıza Geçmişi</a>
+                </details>
+                <details class="nav-group"><summary><i class="bi bi-calendar2-check-fill"></i> Bakım Yönetimi</summary>
+                    <a asp-controller="MaintenancePlan" asp-action="Index">Hibrit Bakım Planlama</a><a asp-controller="Operations" asp-action="Index" asp-route-module="maintenance-execution">Bakım Gerçekleştirme</a><a asp-controller="MaintenancePlan" asp-action="Index">Bakım Planları</a><a asp-controller="Operations" asp-action="Index" asp-route-module="maintenance-history">Bakım Geçmişi</a><a asp-controller="Operations" asp-action="Index" asp-route-module="maintenance-calendar">Bakım Takvimi</a>
+                </details>
+                <details class="nav-group"><summary><i class="bi bi-cpu"></i> Kestirimci Bakım</summary>
+                    <a asp-controller="Operations" asp-action="Index" asp-route-module="risk-analysis">Hibrit Risk Analizi</a><a asp-controller="Operations" asp-action="Index" asp-route-module="alerts">Erken Uyarılar</a><a asp-controller="Operations" asp-action="Index" asp-route-module="decisions">Karar Geçmişi</a>
+                </details>
+                <a class="nav-link" asp-controller="Operations" asp-action="Index" asp-route-module="work-orders"><i class="bi bi-clipboard-check"></i> <span>İş Emirleri</span></a>
+                <details class="nav-group"><summary><i class="bi bi-bar-chart"></i> Raporlar</summary>
+                    <a asp-controller="Operations" asp-action="Index" asp-route-module="failure-reporting">Arıza Analizi</a><a asp-controller="Operations" asp-action="Index" asp-route-module="maintenance-reporting">Bakım Performansı</a><a asp-controller="Operations" asp-action="Index" asp-route-module="model-comparison">Model ve Kural Karşılaştırma</a>
+                </details>
+            </nav>
+
+            <div class="sidebar-footer">
+                <i class="bi bi-diagram-3"></i>
+                <span>ASP.NET Core MVC + Web API</span>
+            </div>
+        </aside>
+
+        <div class="app-main">
+            <header class="topbar">
+                <button class="topbar-toggle d-lg-none" id="sidebarToggle" type="button" aria-label="Menüyü aç/kapat">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div>
+                    <h1 class="topbar-title">@ViewData["Title"]</h1>
+                    <p class="topbar-subtitle">Geçmiş arıza verilerine dayalı önleyici bakım takibi</p>
+                </div>
+                <div class="topbar-spacer"></div>
+                <div class="topbar-user">
+                    <span class="status-dot"></span>
+                    <span>@dataMode</span>
+                </div>
+            </header>
+
+            <main class="content">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <div id="globalModalContainer"></div>
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/animations.js" asp-append-version="true"></script>
+    <script src="~/js/modal-crud.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

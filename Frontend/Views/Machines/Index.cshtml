@@ -1,0 +1,68 @@
+@model MachineListViewModel
+@{
+    ViewData["Title"] = "Makine ve Ekipman Yönetimi";
+}
+
+@if (Model.UseErpAsMasterSource)
+{
+    <div class="alert alert-info d-flex align-items-center gap-2 reveal" role="alert">
+        <i class="bi bi-shield-lock-fill"></i>
+        <div><strong>ERP ana veri kaynağı etkin.</strong> Makine kartları salt okunur; değişiklikler ERP üzerinden yapılmalıdır.</div>
+    </div>
+}
+
+<div class="filter-bar reveal">
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-3 flex-wrap">
+        <div>
+            <div class="section-title mb-1"><i class="bi bi-gear-wide-connected"></i> Makine Kartları</div>
+            <div class="text-muted small">ERP ve yerel kayıtları tek ekrandan izleyin.</div>
+        </div>
+        @if (!Model.UseErpAsMasterSource)
+        {
+            <button type="button" class="btn btn-brand" data-modal-url="@Url.Action("Create", "Machines")">
+                <i class="bi bi-plus-lg"></i> Yeni Makine Ekle
+            </button>
+        }
+    </div>
+    <form method="get" asp-controller="Machines" asp-action="Index" class="row g-3 align-items-end" id="machineFilters">
+        <div class="col-xl-4 col-md-6">
+            <label class="form-label small text-muted fw-semibold" for="machineSearch">Makine Ara</label>
+            <input id="machineSearch" name="search" value="@Model.Search" class="form-control" placeholder="Makine adı veya kodu" />
+        </div>
+        <div class="col-xl-2 col-md-3">
+            <label class="form-label small text-muted fw-semibold" for="statusFilter">Durum</label>
+            <select id="statusFilter" name="status" class="form-select">
+                <option value="">Tümü</option>
+                @foreach (var item in Model.Statuses) { <option value="@item" selected="@(Model.SelectedStatus == item)">@item</option> }
+            </select>
+        </div>
+        <div class="col-xl-2 col-md-3">
+            <label class="form-label small text-muted fw-semibold" for="criticalityFilter">Kritiklik</label>
+            <select id="criticalityFilter" name="criticality" class="form-select">
+                <option value="">Tümü</option>
+                @foreach (var item in Model.Criticalities) { <option value="@item" selected="@(Model.SelectedCriticality == item)">@item</option> }
+            </select>
+        </div>
+        <div class="col-xl-2 col-md-3">
+            <label class="form-label small text-muted fw-semibold" for="sourceFilter">Kaynak</label>
+            <select id="sourceFilter" name="source" class="form-select">
+                <option value="">Tümü</option>
+                @foreach (var item in Model.Sources) { <option value="@item" selected="@(Model.SelectedSource == item)">@item</option> }
+            </select>
+        </div>
+        <input type="hidden" name="sortBy" value="@Model.SortBy" />
+        <input type="hidden" name="descending" value="@Model.Descending.ToString().ToLowerInvariant()" />
+        <div class="col-xl-2 col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-brand flex-grow-1"><i class="bi bi-search"></i> Ara</button>
+            <a asp-action="Index" class="btn btn-primary-soft" title="Filtreleri temizle"><i class="bi bi-x-circle"></i></a>
+        </div>
+    </form>
+</div>
+
+<div id="machineTableRegion">
+    <partial name="_Table" model="Model" />
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

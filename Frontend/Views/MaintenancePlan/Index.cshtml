@@ -1,0 +1,55 @@
+@model MaintenancePlanViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Bakım Planı";
+}
+
+<p class="text-muted mb-3 reveal" style="max-width:760px;">
+    Bu plan, geçmiş arıza kayıtları üzerinde çalışan tahmine dayalı bakım
+    modelinin (Python / makine öğrenmesi) önerdiği tarihleri gösterir.
+</p>
+
+<div class="d-flex flex-column gap-2">
+@foreach (var p in Model.Plans)
+{
+    var typePill = p.Type == "Acil" ? "pill-danger" : "pill-info";
+    var statusPill = p.Status switch
+    {
+        "Tamamlandı" => "pill-ok",
+        "Devam Ediyor" => "pill-warn",
+        _ => "pill-info",
+    };
+    <div class="surface-card reveal d-flex flex-wrap align-items-center gap-3">
+        <div style="min-width:220px;">
+            <div class="fw-semibold">@p.MachineName</div>
+            <div class="text-muted small">Planlanan Tarih: @p.PlannedDate.ToString("dd.MM.yyyy")</div>
+        </div>
+        <span class="pill @typePill" style="min-width:70px; justify-content:center;">@p.Type</span>
+        <div style="min-width:220px; flex:1;">
+            @if (p.Confidence.HasValue)
+            {
+                var confidence = Math.Clamp(p.Confidence.Value, 0m, 100m);
+                var confidenceValue = confidence.ToString("0.#", CultureInfo.InvariantCulture);
+                <div class="text-muted small mb-1">Model Güven Skoru: %@confidence.ToString("0.#")</div>
+                <div class="progress-thin">
+                    <div data-width="@confidenceValue" style="width:@(confidenceValue)%"></div>
+                </div>
+            }
+            else
+            {
+                <div class="text-muted small mb-1">Model Güven Skoru: Hesaplanmadı</div>
+                <div class="progress-thin progress-unavailable" aria-label="Model güven skoru hesaplanmadı"></div>
+            }
+        </div>
+        <div class="text-muted small" style="min-width:260px; flex:1.4;">
+            <i class="bi bi-lightbulb"></i> @p.RecommendedAction
+        </div>
+        <span class="pill @statusPill">@p.Status</span>
+    </div>
+}
+@if (Model.Plans.Count == 0)
+{
+    <div class="surface-card text-muted reveal">Şu an planlanmış bakım kaydı yok.</div>
+}
+</div>
+<partial name="_Pagination" model="Model.Pagination" />

@@ -1,0 +1,132 @@
+@model OperationFormViewModel
+<div class="modal fade" tabindex="-1" aria-labelledby="operationModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <form asp-controller="Operations" asp-action="Submit" method="post" data-modal-form data-reload-page="true">
+                @Html.AntiForgeryToken()
+                <input asp-for="Module" type="hidden" />
+                <input asp-for="Title" type="hidden" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="operationModalTitle">@Model.Title</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <div asp-validation-summary="All" class="text-danger"></div>
+                    <div class="row g-3">
+                        @if (Model.Module is "meter-readings" or "work-calendar" or "transfers" or "failure-report" or "work-orders")
+                        {
+                            <div class="col-md-6">
+                                <label asp-for="MachineId" class="form-label">Makine</label>
+                                <select asp-for="MachineId" class="form-select" data-machine-select>
+                                    <option value="">Seçiniz</option>
+                                    @foreach (var x in Model.Machines) { <option value="@x.Id">@x.Code — @x.Name</option> }
+                                </select>
+                            </div>
+                        }
+
+                        @if (Model.Module == "meter-readings")
+                        {
+                            <div class="col-md-3"><label asp-for="CounterDefinitionId" class="form-label">Sayaç Tanımı</label><select asp-for="CounterDefinitionId" class="form-select"><option value="">Seçiniz</option>@foreach (var x in Model.Counters) { <option value="@x.Id">@x.Code — @x.Name</option> }</select></div>
+                            <div class="col-md-3"><label asp-for="ShiftId" class="form-label">Vardiya</label><select asp-for="ShiftId" class="form-select"><option value="">Seçiniz</option>@foreach (var x in Model.Shifts) { <option value="@x.Id">@x.Code — @x.Name</option> }</select></div>
+                            <div class="col-md-4"><label asp-for="Date" class="form-label">Tarih</label><input asp-for="Date" type="date" class="form-control" /></div>
+                            <div class="col-md-4"><label asp-for="StartValue" class="form-label">Başlangıç Sayacı</label><input asp-for="StartValue" class="form-control" step=".001" /></div>
+                            <div class="col-md-4"><label asp-for="EndValue" class="form-label">Bitiş Sayacı</label><input asp-for="EndValue" class="form-control" step=".001" /></div>
+                        }
+
+                        @if (Model.Module == "work-calendar")
+                        {
+                            <div class="col-md-4"><label asp-for="Date" class="form-label">Tarih</label><input asp-for="Date" type="date" class="form-control" /></div>
+                            <div class="col-md-4"><label asp-for="ShiftId" class="form-label">Vardiya</label><select asp-for="ShiftId" class="form-select"><option value="">Seçiniz</option>@foreach (var x in Model.Shifts) { <option value="@x.Id">@x.Code — @x.Name</option> }</select></div>
+                        }
+
+                        @if (Model.Module == "transfers")
+                        {
+                            <div class="col-md-6"><label asp-for="CompanyId" class="form-label">Firma</label><select asp-for="CompanyId" class="form-select" data-cascade="company"><option value="">Seçiniz</option>@foreach (var x in Model.Companies) { <option value="@x.Id">@x.Code — @x.Name</option> }</select></div>
+                            <div class="col-md-6"><label asp-for="BranchId" class="form-label">Şube</label><select asp-for="BranchId" class="form-select" data-cascade="branch"><option value="">Seçiniz</option>@foreach (var x in Model.Branches) { <option value="@x.Id" data-parent="@x.ParentId">@x.Code — @x.Name</option> }</select></div>
+                            <div class="col-md-6"><label asp-for="DepartmentId" class="form-label">Departman</label><select asp-for="DepartmentId" class="form-select" data-cascade="department"><option value="">Seçiniz</option>@foreach (var x in Model.Departments) { <option value="@x.Id" data-parent="@x.ParentId">@x.Code — @x.Name</option> }</select></div>
+                            <div class="col-md-6"><label asp-for="WorkCenterId" class="form-label">İş Merkezi</label><select asp-for="WorkCenterId" class="form-select" data-cascade="line"><option value="">Seçiniz</option>@foreach (var x in Model.WorkCenters) { <option value="@x.Id" data-parent="@x.ParentId">@x.Code — @x.Name</option> }</select></div>
+                        }
+
+                        @if (Model.Module == "failure-report")
+                        {
+                            <div class="col-md-6"><label asp-for="FailureCodeId" class="form-label">Arıza Kodu</label><select asp-for="FailureCodeId" class="form-select"><option value="">Seçiniz</option>@foreach (var x in Model.FailureCodes) { <option value="@x.Id">@x.Code — @x.Name</option> }</select></div>
+                            <div class="col-md-6"><label asp-for="ComponentCode" class="form-label">Makine Bileşeni</label><select asp-for="ComponentCode" class="form-select" data-component-select><option value="">Seçiniz</option>@foreach (var x in Model.Components) { <option value="@x.Code" data-parent="@x.ParentId">@x.Code — @x.Name</option> }</select></div>
+                            <div class="col-md-6"><label asp-for="ShiftId" class="form-label">Vardiya</label><select asp-for="ShiftId" class="form-select"><option value="">Seçiniz</option>@foreach (var x in Model.Shifts) { <option value="@x.Id">@x.Code — @x.Name</option> }</select></div>
+                            <div class="col-md-6"><label asp-for="Severity" class="form-label">Önem Seviyesi</label><select asp-for="Severity" class="form-select"><option value="">Arıza kodu varsayılanı</option><option>Düşük</option><option>Orta</option><option>Yüksek</option><option>Kritik</option></select></div>
+                        }
+
+                        @if (Model.Module == "failure-actions")
+                        {
+                            <div class="col-md-8"><label asp-for="FailureId" class="form-label">Arıza</label><select asp-for="FailureId" class="form-select"><option value="">Seçiniz</option>@foreach (var x in Model.Faults.Where(x => !x.Resolved)) { <option value="@x.Id">@x.Date:g — @x.MachineName — @x.FaultType</option> }</select></div>
+                            <div class="col-md-4"><label asp-for="Status" class="form-label">İşlem</label><select asp-for="Status" class="form-select"><option value="Müdahale">Müdahale Ekle</option><option value="Kapandı">Arızayı Kapat</option></select></div>
+                            <div class="col-md-6"><label asp-for="PartCode" class="form-label">Değişen Parça</label><select asp-for="PartCode" class="form-select"><option value="">Parça değişmedi</option>@foreach (var x in Model.Parts) { <option value="@x.Code">@x.Code — @x.Name</option> }</select></div>
+                        }
+
+                        @if (Model.Module == "maintenance-execution")
+                        {
+                            <div class="col-md-8"><label asp-for="PlanId" class="form-label">Bakım Planı</label><select asp-for="PlanId" class="form-select"><option value="">Seçiniz</option>@foreach (var x in Model.Plans.Where(x => x.Status != "Tamamlandı" && x.Status != "İptal")) { <option value="@x.Id">@x.PlannedDate:d — @x.MachineName — @x.Type</option> }</select></div>
+                            <div class="col-md-4"><label asp-for="ChecklistId" class="form-label">Kontrol Listesi</label><select asp-for="ChecklistId" class="form-select" data-checklist-select><option value="">Kontrol listesi yok</option>@foreach (var x in Model.ChecklistDefinitions) { <option value="@x.Id">@x.Code — @x.Name</option> }</select></div>
+                            <div class="col-md-6"><label asp-for="Status" class="form-label">Bakım Sonrası Makine Durumu</label><select asp-for="Status" class="form-select"><option value="Aktif">Aktif</option><option value="İzlemede">İzlemede</option><option value="Bakımda">Bakımda</option><option value="Pasif">Pasif</option></select></div>
+                            <div class="col-md-6"><label asp-for="Cost" class="form-label">Maliyet (TL)</label><input asp-for="Cost" class="form-control" min="0" step=".01" /></div>
+                            <div class="col-12">
+                                @foreach (var checklist in Model.ChecklistDefinitions)
+                                {
+                                    <div class="border rounded-3 p-3 d-none" data-checklist-items="@checklist.Id">
+                                        <div class="fw-semibold mb-2">@checklist.Name</div>
+                                        @for (var index = 0; index < checklist.Items.Count; index++)
+                                        {
+                                            var item = checklist.Items[index];
+                                            var existing = Model.ChecklistResults.FirstOrDefault(x => x.ItemId == item.ItemId);
+                                            <div class="row g-2 align-items-center mb-2">
+                                                <input type="hidden" name="ChecklistResults[@index].ItemId" value="@item.ItemId" data-checklist-control disabled />
+                                                <div class="col-md-6">@item.Text @if (item.Required) { <span class="text-danger">*</span> }</div>
+                                                <div class="col-md-3"><select name="ChecklistResults[@index].Result" class="form-select form-select-sm" data-checklist-control data-required="@item.Required.ToString().ToLowerInvariant()" disabled><option value="">Sonuç seçiniz</option><option value="Uygun" selected="@(existing?.Result == "Uygun" ? "selected" : null)">Uygun</option><option value="Uygun Değil" selected="@(existing?.Result == "Uygun Değil" ? "selected" : null)">Uygun Değil</option><option value="Uygulanamaz" selected="@(existing?.Result == "Uygulanamaz" ? "selected" : null)">Uygulanamaz</option></select></div>
+                                                <div class="col-md-3"><input name="ChecklistResults[@index].Description" value="@existing?.Description" class="form-control form-control-sm" data-checklist-control data-required="@item.DescriptionRequired.ToString().ToLowerInvariant()" disabled placeholder="Açıklama" /></div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (Model.Module == "alerts")
+                        {
+                            <div class="col-md-7"><label asp-for="WarningId" class="form-label">Uyarı</label><select asp-for="WarningId" class="form-select"><option value="">Seçiniz</option>@foreach (var x in Model.Warnings) { <option value="@x.Id">@x.ParentName — @x.Name (@x.Type)</option> }</select></div>
+                            <div class="col-md-5"><label asp-for="Status" class="form-label">İşlem</label><select asp-for="Status" class="form-select"><option value="assign">Sorumlu Ata</option><option value="plan">Bakım Planı Oluştur</option><option value="no-action">İşlem Gerekmiyor</option><option value="close">Uyarıyı Kapat</option></select></div>
+                        }
+
+                        @if (Model.Module == "work-orders")
+                        {
+                            <div class="col-md-4"><label asp-for="PlanId" class="form-label">Bakım Planı</label><select asp-for="PlanId" class="form-select"><option value="">Bağlantı yok</option>@foreach (var x in Model.Plans) { <option value="@x.Id">@x.MachineName — @x.Type</option> }</select></div>
+                            <div class="col-md-4"><label asp-for="FailureId" class="form-label">Arıza</label><select asp-for="FailureId" class="form-select"><option value="">Bağlantı yok</option>@foreach (var x in Model.Faults) { <option value="@x.Id">@x.MachineName — @x.FaultType</option> }</select></div>
+                            <div class="col-md-4"><label asp-for="WarningId" class="form-label">Uyarı</label><select asp-for="WarningId" class="form-select"><option value="">Bağlantı yok</option>@foreach (var x in Model.Warnings) { <option value="@x.Id">@x.ParentName — @x.Name</option> }</select></div>
+                            <div class="col-md-6"><label asp-for="Date" class="form-label">Planlanan Tarih</label><input asp-for="Date" type="date" class="form-control" /></div>
+                            <div class="col-md-6"><label asp-for="Severity" class="form-label">Öncelik</label><select asp-for="Severity" class="form-select"><option value="Orta">Orta</option><option value="Düşük">Düşük</option><option value="Yüksek">Yüksek</option><option value="Kritik">Kritik</option></select></div>
+                        }
+
+                        @if (Model.Module is "failure-report" or "failure-actions" or "maintenance-execution" or "transfers")
+                        {
+                            <div class="col-md-6"><label asp-for="StartedAt" class="form-label">Başlangıç / İşlem Tarihi</label><input asp-for="StartedAt" type="datetime-local" class="form-control" /></div>
+                            <div class="col-md-6"><label asp-for="EndedAt" class="form-label">Bitiş</label><input asp-for="EndedAt" type="datetime-local" class="form-control" /></div>
+                        }
+
+                        @if (Model.Personnel.Count > 0)
+                        {
+                            <div class="col-md-4"><label asp-for="PersonnelId" class="form-label">Personel</label><select asp-for="PersonnelId" class="form-select"><option value="">Seçiniz</option>@foreach (var x in Model.Personnel) { <option value="@x.Id">@x.Code — @x.Name @if (!string.IsNullOrWhiteSpace(x.Type)) { <text>(@x.Type)</text> }</option> }</select></div>
+                        }
+                        @if (Model.Module is "meter-readings" or "work-calendar" or "failure-report" or "failure-actions")
+                        {
+                            <div class="col-md-4"><label asp-for="Minutes" class="form-label">Süre (dk)</label><input asp-for="Minutes" class="form-control" min="0" /></div>
+                            <div class="col-md-4"><label asp-for="Quantity" class="form-label">Miktar</label><input asp-for="Quantity" class="form-control" min="0" step=".001" /></div>
+                        }
+                        <div class="col-12"><label asp-for="Description" class="form-label">Açıklama / Gerekçe / Sonuç</label><textarea asp-for="Description" class="form-control" rows="3"></textarea></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-brand" data-submit-button><span class="spinner-border spinner-border-sm d-none"></span> Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

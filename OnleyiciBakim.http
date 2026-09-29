@@ -1,0 +1,162 @@
+@baseUrl = http://localhost:5224
+@token =
+@machineId = DEV-MKN-001
+@failureId = DEV-FLR-001
+@riskAnalysisId =
+@maintenancePlanId = DEV-PLN-001
+@executionId = DEV-EXE-001
+
+### Health - live
+GET {{baseUrl}}/health/live
+
+### Health - ready
+GET {{baseUrl}}/health/ready
+
+### Dashboard
+GET {{baseUrl}}/api/v1/dashboard?months=6&riskyMachineCount=5
+
+### Machines - filtered and paged
+GET {{baseUrl}}/api/v1/machines?page=1&pageSize=20&riskLevel=Critical&sortBy=riskScore&descending=true
+
+### Machine detail
+GET {{baseUrl}}/api/v1/machines/{{machineId}}
+
+### Working data
+POST {{baseUrl}}/api/v1/machines/{{machineId}}/telemetry
+Content-Type: application/json
+
+{
+  "date": "2026-07-30",
+  "recordCount": 1440,
+  "anomalyScore": 72.5,
+  "productionIntensityPercent": 88
+}
+
+### Algorithmic + ML hybrid analysis (Development mock)
+POST {{baseUrl}}/api/v1/risk-analyses/machines/{{machineId}}
+Content-Type: application/json
+X-Correlation-ID: http-demo-risk-001
+
+{
+  "mockScenario": "success"
+}
+
+### ML failure / FailClosed
+POST {{baseUrl}}/api/v1/risk-analyses/machines/{{machineId}}
+Content-Type: application/json
+
+{
+  "mockScenario": "timeout"
+}
+
+### Risk boundary preview
+POST {{baseUrl}}/api/v1/risks/preview
+Content-Type: application/json
+
+{
+  "machineLearningScore": 80,
+  "algorithmicInput": {
+    "failureCount30Days": 1,
+    "daysSinceLastMaintenance": 45,
+    "totalDowntimeHours30Days": 2,
+    "repeatedFailure": false,
+    "criticality": "Orta",
+    "counterLimitOverrunPercent": 0,
+    "productionStoppingFailureCount30Days": 0
+  }
+}
+
+### Failures
+GET {{baseUrl}}/api/v1/failures?page=1&pageSize=20
+
+### Start/add intervention
+POST {{baseUrl}}/api/v1/failures/{{failureId}}/interventions
+Content-Type: application/json
+
+{
+  "id": "DEV-INT-001",
+  "startedAt": "2026-07-30T18:00:00Z",
+  "personnelId": "DEV-PER-1",
+  "note": "Titreşim ve rulman kontrolü başlatıldı."
+}
+
+### Close failure (intervention must be started)
+POST {{baseUrl}}/api/v1/failures/{{failureId}}/close
+Content-Type: application/json
+
+{
+  "resolution": "Rulman değiştirildi.",
+  "rootCause": "Rulman aşınması",
+  "downtimeMinutes": 480
+}
+
+### Maintenance plans
+GET {{baseUrl}}/api/v1/maintenance/plans?page=1&pageSize=20
+
+### Start maintenance execution
+POST {{baseUrl}}/api/v1/maintenance-executions/plans/{{maintenancePlanId}}/start
+Content-Type: application/json
+
+{
+  "executionId": "{{executionId}}",
+  "personnelId": "DEV-PER-1"
+}
+
+### Complete maintenance execution
+POST {{baseUrl}}/api/v1/maintenance-executions/{{executionId}}/complete
+Content-Type: application/json
+
+{
+  "result": "Bakım tamamlandı.",
+  "durationMinutes": 90,
+  "cost": 1250,
+  "replacedParts": [
+    { "partCode": "BRG-6204", "partName": "Rulman", "quantity": 2 }
+  ]
+}
+
+### Early warnings
+GET {{baseUrl}}/api/v1/alerts?page=1&pageSize=20
+
+### Decision history
+GET {{baseUrl}}/api/v1/decision-history?page=1&pageSize=20
+
+### Reports
+GET {{baseUrl}}/api/v1/reports/failure-analysis
+
+### ERP mock pull (Development; production requires X-Integration-Key)
+POST {{baseUrl}}/api/v1/integrations/erp/pull-machines
+X-Integration-Key: {{token}}
+
+### ERP work order
+POST {{baseUrl}}/api/v1/integrations/erp/work-orders/{{maintenancePlanId}}
+X-Integration-Key: {{token}}
+
+### ERP integration logs
+GET {{baseUrl}}/api/v1/integrations/erp/integration-logs
+X-Integration-Key: {{token}}
+### Yerel tanım modülleri
+GET {{baseUrl}}/api/v1/local-definitions/modules
+Accept: application/json
+
+### Firmalar
+GET {{baseUrl}}/api/v1/local-definitions/companies
+Accept: application/json
+
+### Yerel makine için uçtan uca hibrit risk
+POST {{baseUrl}}/api/v1/risk-analyses/local-machines/MAK-0001?reason=Manuel%20yonetici%20dogrulamasi
+Accept: application/json
+
+### Sayaç / çalışma verisi (sayaç farkı backend tarafından hesaplanır)
+POST {{baseUrl}}/api/v1/local-workflows/meter-readings
+Content-Type: application/json
+
+{
+  "machineId": "MAK-0001",
+  "counterDefinitionId": 1,
+  "date": "2026-08-05",
+  "shiftId": 1,
+  "startValue": 100,
+  "endValue": 108.5,
+  "workingMinutes": 480
+}

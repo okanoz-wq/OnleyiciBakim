@@ -1,0 +1,23 @@
+@model OperationsIndexViewModel
+@{ ViewData["Title"] = Model.Title; }
+<div class="filter-bar reveal"><div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><div><div class="section-title"><i class="bi bi-kanban"></i> @Model.Title</div><div class="text-muted small">@Model.Description</div></div>@if(Model.ActionLabel is not null){<button class="btn btn-brand" data-modal-url="@Url.Action("ActionModal", new { module = Model.Module })"><i class="bi bi-plus-lg"></i> @Model.ActionLabel</button>}</div></div>
+<div id="operationsRegion" class="row g-3 mt-1">
+ <div class="col-lg-4"><div class="metric-card"><div class="metric-label">Aktif Makine</div><div class="metric-value">@Model.Machines.Count</div></div></div>
+ <div class="col-lg-4"><div class="metric-card"><div class="metric-label">Arıza Kaydı</div><div class="metric-value">@Model.Faults.Count</div></div></div>
+ <div class="col-lg-4"><div class="metric-card"><div class="metric-label">Bakım Planı</div><div class="metric-value">@Model.Plans.Count</div></div></div>
+</div>
+<div class="table-card mt-3"><div class="p-4"><h6>Yerel veri akışı</h6><p class="text-muted mb-0">Bu modüldeki işlemler API servis katmanından geçer; doğrulama, transaction, geçmiş ve otomatik risk tetikleme kuralları sunucuda uygulanır. Risk/model alanları kullanıcı girişine kapalıdır.</p></div></div>
+@if (Model.Module is "maintenance-calendar" or "maintenance-history" or "maintenance-execution")
+{
+ <div class="table-card mt-3"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Tarih</th><th>Makine</th><th>Tür</th><th>Risk</th><th>Durum</th></tr></thead><tbody>@foreach(var x in Model.Plans.OrderBy(x=>x.PlannedDate)){<tr role="button" data-modal-url="@Url.Action("PlanDetails", new { id=x.Id })"><td>@x.PlannedDate.ToString("dd.MM.yyyy")</td><td>@x.MachineName</td><td>@x.Type</td><td>@x.PredictedRiskScore.ToString("0.##")</td><td>@x.Status</td></tr>}</tbody></table></div></div>
+}
+@if (Model.Module is "failure-actions" or "failure-report")
+{
+ <div class="table-card mt-3"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Tarih</th><th>Makine</th><th>Arıza</th><th>Önem</th><th>Durum</th></tr></thead><tbody>@foreach(var x in Model.Faults.OrderByDescending(x=>x.Date).Take(100)){<tr role="button" data-modal-url="@Url.Action("FaultDetails", new { id=x.Id })"><td>@x.Date.ToString("g")</td><td>@x.MachineName</td><td>@x.FaultType</td><td>@x.Severity</td><td>@(x.Resolved?"Kapalı":"Açık")</td></tr>}</tbody></table></div></div>
+}
+@if (Model.Report is not null)
+{
+ <div class="row g-3 mt-1">@foreach(var metric in Model.Report.Metrics){<div class="col-xl-3 col-md-4"><div class="metric-card"><div class="metric-label">@metric.Key</div><div class="metric-value fs-4">@metric.Value</div></div></div>}</div>
+ @if(Model.Report.Rows.Count>0){<div class="table-card mt-3"><div class="table-responsive"><table class="table mb-0"><thead><tr>@foreach(var key in Model.Report.Rows[0].Keys){<th>@key</th>}</tr></thead><tbody>@foreach(var row in Model.Report.Rows){<tr>@foreach(var value in row.Values){<td>@value</td>}</tr>}</tbody></table></div></div>}
+}
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

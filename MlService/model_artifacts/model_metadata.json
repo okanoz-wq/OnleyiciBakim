@@ -1,0 +1,172 @@
+{
+  "modelVersion": "rf-v2-time-aware",
+  "trainedAt": "2026-08-05T10:42:57.249089+00:00",
+  "trainingRows": 4700,
+  "machineCount": 100,
+  "pythonVersion": "3.11.9",
+  "scikitLearnVersion": "1.5.1",
+  "calibrated": true,
+  "featureImportance": [
+    {
+      "feature": "yas",
+      "importance": 0.1427761
+    },
+    {
+      "feature": "model",
+      "importance": 0.09874127
+    },
+    {
+      "feature": "kritik_seviye",
+      "importance": 0.09688053
+    },
+    {
+      "feature": "ort_mudahale_suresi_90g",
+      "importance": 0.07439409
+    },
+    {
+      "feature": "durus_suresi_30g",
+      "importance": 0.06364138
+    },
+    {
+      "feature": "toplam_gecmis_ariza",
+      "importance": 0.05220513
+    },
+    {
+      "feature": "bakim_sayisi_90g",
+      "importance": 0.05088642
+    },
+    {
+      "feature": "bakim_sayisi_30g",
+      "importance": 0.04185618
+    },
+    {
+      "feature": "son_bakimdan_gecen_gun",
+      "importance": 0.04124466
+    },
+    {
+      "feature": "devir_ort_7g",
+      "importance": 0.04022809
+    },
+    {
+      "feature": "volt_ort_7g",
+      "importance": 0.04016229
+    },
+    {
+      "feature": "uretim_yogunlugu_7g",
+      "importance": 0.03900045
+    },
+    {
+      "feature": "titresim_ort_7g",
+      "importance": 0.03875787
+    },
+    {
+      "feature": "anomali_puani_7g",
+      "importance": 0.03874367
+    },
+    {
+      "feature": "basinc_ort_7g",
+      "importance": 0.03659909
+    },
+    {
+      "feature": "ariza_sayisi_90g",
+      "importance": 0.03052502
+    },
+    {
+      "feature": "hata_sayisi_30g",
+      "importance": 0.0218665
+    },
+    {
+      "feature": "ariza_sayisi_30g",
+      "importance": 0.02155843
+    },
+    {
+      "feature": "tekrar_ariza_sayisi_90g",
+      "importance": 0.02092404
+    },
+    {
+      "feature": "hata_sayisi_7g",
+      "importance": 0.0090088
+    }
+  ],
+  "evaluationSummary": {
+    "randomSplit": {
+      "rowCount": 940,
+      "positiveRate": 0.509574,
+      "rocAuc": 0.748677,
+      "precision": 0.720096,
+      "recall": 0.628392,
+      "f1": 0.671126,
+      "brierScore": 0.206513,
+      "logLoss": 0.600757,
+      "confusionMatrix": [
+        [
+          344,
+          117
+        ],
+        [
+          178,
+          301
+        ]
+      ],
+      "trainRowCount": 3760,
+      "trainDateMax": "2015-11-26T06:00:00",
+      "testDateMin": "2015-01-08T06:00:00"
+    },
+    "timeSplit": {
+      "rowCount": 1000,
+      "positiveRate": 0.503,
+      "rocAuc": 0.679016,
+      "precision": 0.65098,
+      "recall": 0.66004,
+      "f1": 0.655479,
+      "brierScore": 0.226801,
+      "logLoss": 0.646694,
+      "confusionMatrix": [
+        [
+          319,
+          178
+        ],
+        [
+          171,
+          332
+        ]
+      ],
+      "trainRowCount": 3700,
+      "trainDateMax": "2015-09-17T06:00:00",
+      "testDateMin": "2015-09-24T06:00:00"
+    },
+    "timeSeriesSplitAverage": {
+      "rocAuc": 0.691261,
+      "precision": 0.638039,
+      "recall": 0.657159,
+      "f1": 0.646964,
+      "brierScore": 0.22341,
+      "logLoss": 0.638075
+    },
+    "unseenMachine": {
+      "rowCount": 940,
+      "positiveRate": 0.502128,
+      "rocAuc": 0.606847,
+      "precision": 0.573386,
+      "recall": 0.620763,
+      "f1": 0.596134,
+      "brierScore": 0.24443,
+      "logLoss": 0.682179,
+      "confusionMatrix": [
+        [
+          250,
+          218
+        ],
+        [
+          179,
+          293
+        ]
+      ],
+      "trainRowCount": 3760,
+      "trainDateMax": "2015-11-26T06:00:00",
+      "testDateMin": "2015-01-08T06:00:00",
+      "testMachineCount": 20
+    }
+  },
+  "probabilityNotice": "failureProbability modelin 30 günlük risk çıktısıdır; saha koşullarında kesin arıza olasılığı olarak yorumlanmamalıdır."
+}

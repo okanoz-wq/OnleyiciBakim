@@ -1,0 +1,85 @@
+{
+  "info": {
+    "name": "OnleyiciBakim API",
+    "_postman_id": "a6148054-f300-4d22-8b34-1cad362628fa",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5224" },
+    { "key": "token", "value": "" },
+    { "key": "machineId", "value": "DEV-MKN-001" },
+    { "key": "failureId", "value": "DEV-FLR-001" },
+    { "key": "riskAnalysisId", "value": "" },
+    { "key": "maintenancePlanId", "value": "DEV-PLN-001" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        { "name": "Live", "request": { "method": "GET", "url": "{{baseUrl}}/health/live" } },
+        { "name": "Ready", "request": { "method": "GET", "url": "{{baseUrl}}/health/ready" } }
+      ]
+    },
+    {
+      "name": "Machines",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/machines?page=1&pageSize=20" } },
+        { "name": "Detail", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/machines/{{machineId}}" } }
+      ]
+    },
+    {
+      "name": "Risk",
+      "item": [
+        {
+          "name": "Hybrid Analysis",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"mockScenario\":\"success\"}" },
+            "url": "{{baseUrl}}/api/v1/risk-analyses/machines/{{machineId}}"
+          }
+        },
+        {
+          "name": "ML Timeout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"mockScenario\":\"timeout\"}" },
+            "url": "{{baseUrl}}/api/v1/risk-analyses/machines/{{machineId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Failures",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/failures?page=1&pageSize=20" } }
+      ]
+    },
+    {
+      "name": "Maintenance",
+      "item": [
+        { "name": "Plans", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/maintenance/plans?page=1&pageSize=20" } }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        { "name": "Failure Analysis", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/reports/failure-analysis" } }
+      ]
+    },
+    {
+      "name": "ERP Integration",
+      "item": [
+        {
+          "name": "Pull Machines",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-Integration-Key", "value": "{{token}}" }],
+            "url": "{{baseUrl}}/api/v1/integrations/erp/pull-machines"
+          }
+        }
+      ]
+    }
+  ]
+}

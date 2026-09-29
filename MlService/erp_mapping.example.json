@@ -1,0 +1,45 @@
+{
+  "status": "TODO: ERP field mapping required",
+  "timezone": "Europe/Istanbul",
+  "files": {
+    "machines": "TODO",
+    "failures": "TODO",
+    "maintenance": "TODO",
+    "errors": "TODO",
+    "telemetry": "TODO"
+  },
+  "columns": {
+    "machines": {
+      "machine_id": "TODO",
+      "model": "TODO",
+      "criticality": "TODO",
+      "installation_date": "TODO"
+    },
+    "failures": {
+      "machine_id": "TODO",
+      "occurred_at": "TODO",
+      "failure_type": "TODO",
+      "downtime_minutes": "TODO",
+      "intervention_minutes": "TODO",
+      "severity": "TODO"
+    },
+    "maintenance": {
+      "machine_id": "TODO",
+      "performed_at": "TODO"
+    },
+    "errors": {
+      "machine_id": "TODO",
+      "occurred_at": "TODO"
+    },
+    "telemetry": {
+      "machine_id": "TODO",
+      "recorded_at": "TODO",
+      "voltage": "TODO",
+      "rotation": "TODO",
+      "pressure": "TODO",
+      "vibration": "TODO",
+      "anomaly_score": "TODO",
+      "production_intensity": "TODO"
+    }
+  }
+}

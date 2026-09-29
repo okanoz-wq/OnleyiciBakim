@@ -1,0 +1,8 @@
+@model (DefinitionMetadataViewModel Metadata, DefinitionRowViewModel Row)
+<div class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">@Model.Metadata.Title — Detay</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
+        <div class="modal-body"><dl class="row mb-0"><dt class="col-sm-4">@Model.Metadata.CodeLabel</dt><dd class="col-sm-8">@Model.Row.Code</dd><dt class="col-sm-4">@Model.Metadata.NameLabel</dt><dd class="col-sm-8">@Model.Row.Name</dd>@if(Model.Metadata.ParentLabel is not null){<dt class="col-sm-4">@Model.Metadata.ParentLabel</dt><dd class="col-sm-8">@(Model.Row.ParentName ?? "—")</dd>}<dt class="col-sm-4">Durum</dt><dd class="col-sm-8">@(Model.Row.Active ? "Aktif" : "Pasif")</dd><dt class="col-sm-4">Açıklama</dt><dd class="col-sm-8">@(Model.Row.Description ?? "—")</dd></dl></div>
+        <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Kapat</button></div>
+    </div></div>
+</div>

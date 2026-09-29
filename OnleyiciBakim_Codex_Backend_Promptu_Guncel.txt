@@ -1,0 +1,1431 @@
+# CODEX GÖREVİ: OnleyiciBakim Projesinin Backend Katmanını Eksiksiz Tamamla
+
+Sen kıdemli bir ASP.NET Core/C# backend geliştiricisi ve yazılım mimarısın. Çalıştığın mevcut repository/proje adı **OnleyiciBakim**. Bu projede 4 yazılımcı vardır:
+
+- Backend: benim sorumluluğum
+- PostgreSQL veritabanı ve nihai şema: başka ekip üyesinin sorumluluğu
+- Makine öğrenmesi modeli/eğitimi: başka ekip üyesinin sorumluluğu
+- Frontend/template: başka ekip üyesinin sorumluluğu
+
+Sen yalnızca backend alanını eksiksiz tamamlayacaksın; ancak backend, hazır gelecek PostgreSQL şemasına, ML servisine, ERP web servislerine ve frontend template’ine kolayca bağlanabilir olmalıdır.
+
+## 1. ÇALIŞMA BİÇİMİ VE ZORUNLU İLK ADIMLAR
+
+1. Önce repository’nin tamamını tara ve mevcut çözüm/proje yapısını oku.
+2. Mevcut `.sln`, `.csproj`, target framework, kullanılan paketler, klasörler, namespace’ler, authentication yapısı, `Program.cs`, `appsettings*.json`, DbContext, entity’ler, controller’lar, view’lar ve mevcut kodlama stilini analiz et.
+3. Var olan çalışan kodu gereksiz yere bozma, framework sürümünü kendiliğinden değiştirme ve projeyi baştan oluşturma. Mevcut target framework neyse onunla devam et.
+4. Eksik backend dosyalarını oluştur; mevcut dosyalar yetersizse güvenli biçimde düzenle.
+5. Her önemli aşamadan sonra projeyi derle. Derleme hatalarını gider. Testler varsa çalıştır; yoksa gerekli unit/integration testlerini ekle.
+6. Sahte başarı üretme. Ulaşılamayan ERP/ML/veritabanı sistemleri için gerçek entegrasyon arayüzlerini ve kontrollü mock/fallback geliştirme seçeneklerini hazırla; ancak production akışında sahte tahmin üretme.
+7. Sonunda yapılan değişiklikleri, oluşturulan dosyaları, endpoint listesini, yapılandırma anahtarlarını ve çalıştırma adımlarını özetleyen `BACKEND_README.md` oluştur.
+
+## 2. TEKNOLOJİ VE MİMARİ
+
+Mevcut proje ASP.NET Core MVC ise MVC yapısını koru. Değilse mevcut yapıyı bozmayacak şekilde aşağıdaki katmanlı düzeni uygula:
+
+- `Controllers/`
+- `Services/Interfaces/`
+- `Services/Implementations/`
+- `Repositories/Interfaces/`
+- `Repositories/Implementations/`
+- `Data/`
+- `Entities/` veya mevcut karşılığı
+- `DTOs/Requests/`
+- `DTOs/Responses/`
+- `ViewModels/`
+- `Models/Enums/`
+- `Integrations/Erp/`
+- `Integrations/Ml/`
+- `Options/`
+- `Validators/`
+- `Mappings/`
+- `Middleware/`
+- `Exceptions/`
+- `Common/Results/`
+- `Common/Pagination/`
+- `BackgroundJobs/` (gerekiyorsa)
+- `Tests/`
+
+Tercihler:
+
+- ASP.NET Core MVC + REST/JSON endpoint desteği
+- Entity Framework Core + Npgsql
+- PostgreSQL
+- Dependency Injection
+- `HttpClientFactory` ile ERP ve ML çağrıları
+- `IOptions<T>` ile konfigürasyon
+- `ILogger<T>` ile loglama
+- Asenkron kod ve `CancellationToken`
+- DTO kullanımı; entity’leri doğrudan API’den açma
+- FluentValidation projede mevcutsa kullan; yoksa DataAnnotations veya sade validator servisleri kullan
+- AutoMapper mevcutsa kullan; yoksa gereksiz paket ekleme, açık mapping metotları yaz
+- Repository pattern mevcutsa koru; yoksa gereksiz soyutlama eklemek yerine servis + DbContext tercih edilebilir. Ancak test edilebilirlik sağla.
+- Para/puan/oran alanlarında `double` yerine mümkün olduğunca `decimal` kullan.
+- Tarih ve saatlerde UTC saklama yaklaşımı kullan; kullanıcıya gösterirken frontend/local timezone dönüşümünü destekle.
+- JSON serileştirmede enum’ları okunabilir string olarak verme seçeneğini yapılandır.
+
+## 3. PROJENİN İŞ AMACI
+
+Sistem, makinelerin geçmiş arıza verileri, çalışma/sayaç verileri, bakım geçmişi ve ML modelinden gelen risk tahminini birleştirerek makine arızalanmadan önce bakım önerisi ve bakım planı üretir.
+
+Backend’in temel görevleri:
+
+- Makine ve bileşen bilgilerini yönetmek
+- Arıza bildirimi, müdahale, kapatma ve geçmiş sorgularını yönetmek
+- Makine çalışma/sayaç verisini almak
+- Algoritmik risk puanını hesaplamak
+- ML servisinden 0-100 risk puanı almak
+- Hibrit risk puanını hesaplamak
+- Kesin risk sınıfını belirlemek
+- Bakım önerisi ve erken uyarı üretmek
+- Bakım planı ve görevlerini yönetmek
+- Bakım gerçekleşmesini kaydetmek
+- ERP ile veri alışverişi ve iş emri senkronizasyonu yapmak
+- Raporlar ve dashboard özetleri için backend verisi sağlamak
+- Karar geçmişi ve audit log tutmak
+
+## 4. KESİN RİSK KURALI - HİÇBİR YERDE DEĞİŞTİRME
+
+Risk puanı `0-100` arasında ve ondalıklı olabilir. Uygulamanın tüm katmanlarında tek bir merkezi sınıflandırıcı kullan. Controller, service, view, rapor veya başka bir yerde aralıkları tekrar tekrar hard-code etme.
+
+Kesin sınıflandırma:
+
+- `0 <= puan < 30` => `Düşük`
+- `30 <= puan < 60` => `Orta`
+- `60 <= puan < 80` => `Yüksek`
+- `80 <= puan <= 100` => `Kritik`
+
+Renkler:
+
+- Düşük => yeşil
+- Orta => sarı/amber
+- Yüksek => kırmızı
+- Kritik => koyu kırmızı/bordo
+
+Zorunlu teknik kurallar:
+
+- Puan 0’ın altındaysa 0’a, 100’ün üstündeyse 100’e clamp et; ham değeri ayrıca logla.
+- `29.999` Düşük, `30.000` Orta, `59.999` Orta, `60.000` Yüksek, `79.999` Yüksek, `80.000` Kritik, `100.000` Kritik olmalıdır.
+- Risk enum’u örneği: `Low`, `Medium`, `High`, `Critical`; kullanıcıya Türkçe karşılık döndür.
+- Merkezi servis oluştur: örneğin `IRiskClassificationService` / `RiskClassificationService`.
+- Response DTO’larında `riskScore`, `riskLevel`, `riskLevelDisplayName`, `riskColorKey` alanları bulunabilsin.
+- Renk için backend CSS koduna bağımlı olmasın; semantic anahtar (`green`, `amber`, `red`, `dark-red`) dön. İstenirse hex karşılığı ayrıca merkezi sabitlerden verilebilir.
+- Sınır değerleri için unit test yaz.
+
+## 5. HİBRİT RİSK HESABI
+
+Nihai risk puanı:
+
+`NihaiRisk = AlgoritmikRisk * 0.30 + MlRisk * 0.70`
+
+Zorunlu kurallar:
+
+- Ağırlıklar varsayılan olarak `%30 algoritmik`, `%70 ML` olmalıdır.
+- Ağırlıkları `appsettings` veya veritabanı parametre tablosundan okunabilir hale getir; toplamları 1.00 değilse validation hatası üret veya güvenli varsayılanlara dön ve kritik log yaz.
+- Nihai değer `decimal` olarak hesaplanmalı, 0-100’e clamp edilmeli ve yalnızca sunum aşamasında uygun basamağa yuvarlanmalıdır. Hesaplama sırasında gereksiz yuvarlama yapma.
+- Ham algoritmik puan, ham ML puanı, kullanılan ağırlıklar, nihai puan, model versiyonu, kural seti versiyonu ve analiz zamanı karar geçmişinde saklanmalıdır.
+- ML servisi başarısızsa gizlice sıfır kullanma. Sonuç durumu açık olmalıdır.
+- ML ulaşılamadığında politika yapılandırılabilir olsun:
+  - `FailClosed`: analiz başarısız, bakım kararı otomatik verilmez.
+  - `AlgorithmOnlyFallback`: yalnızca açıkça konfigüre edilmişse algoritmik skor kullanılır ve `IsFallback=true` kaydedilir.
+- Varsayılan production politikası `FailClosed` olsun.
+- Kullanıcı/manual override varsa override nedeni, kullanıcı, tarih ve önceki puan saklanmalıdır.
+
+Örnek servisler:
+
+- `IAlgorithmicRiskService`
+- `IMlPredictionClient`
+- `IHybridRiskService`
+- `IRiskClassificationService`
+- `IRiskAnalysisService`
+
+## 6. ALGORİTMİK RİSK HESABI
+
+Kendi algoritmik puanımız 0-100 üretmelidir. CSV/veritabanı alanları kesinleştiğinde eşleştirme kolay olmalıdır. Hesabı tek bir sınıfa gömme; faktör tabanlı ve genişletilebilir yap.
+
+Başlangıç faktörleri:
+
+- Son 30 gündeki arıza sayısı
+- Son bakımdan geçen gün
+- Tekrarlayan arıza durumu
+- Toplam/ortalama duruş süresi
+- Makine kritiklik seviyesi
+- Planlanan bakıma kalan/geçen süre
+- Çalışma saati veya sayaç limit aşımı
+- Sensör anomalisi varsa anomali şiddeti
+- Üretimi durduran arıza sayısı
+- Bileşen ömür kullanım oranı
+
+Her faktör için:
+
+- Normalize edilmiş 0-100 değer
+- Ağırlık
+- Katkı puanı
+- Kullanılan ham değer
+- Açıklama
+
+üretilebilsin. `RiskFactorResult` benzeri DTO/entity kullan.
+
+Önerilen başlangıç algoritması, veriler kesin değilse yapılandırılabilir olarak uygulanmalı:
+
+- Arıza sıklığı: %25
+- Son bakımdan geçen süre: %20
+- Duruş süresi: %15
+- Tekrarlayan arıza: %15
+- Makine kritiklik: %10
+- Sayaç/çalışma limit aşımı: %10
+- Üretim etkisi: %5
+
+Toplam %100 olmalı. Bu değerler kodun farklı yerlerine hard-code edilmemeli; `AlgorithmicRiskOptions` veya risk kural parametrelerinden yönetilmelidir.
+
+Eksik veri davranışı:
+
+- Hangi faktörlerin eksik olduğunu belirle.
+- `DataCompletenessPercent` üret.
+- Eksik faktörleri kalan ağırlıklara otomatik dağıtma; bu yöntem sonucu gizlice şişirebilir. Varsayılan olarak eksik faktör katkısını 0 kabul et ve veri yeterliliğini ayrıca raporla.
+- Veri yeterliliği eşik altındaysa otomatik bakım planı üretme, yalnızca uyarı oluştur.
+
+## 7. ML ENTEGRASYONU
+
+Backend ML modelini eğitmeyecek. ML ekip arkadaşının sağlayacağı servis/API’den tahmin alacak.
+
+`IMlPredictionClient` oluştur. `HttpClientFactory` kullan. Aşağıdaki gibi uyarlanabilir sözleşme tanımla:
+
+Request örneği:
+
+```json
+{
+  "machineId": "...",
+  "analysisTimeUtc": "...",
+  "features": {
+    "failureCount30Days": 2,
+    "daysSinceLastMaintenance": 68,
+    "totalDowntimeHours30Days": 12.4,
+    "repeatedFailure": true,
+    "machineCriticality": "High",
+    "workingHours": 8915,
+    "sensorAnomalyScore": 72.5
+  }
+}
+```
+
+Response örneği:
+
+```json
+{
+  "riskScore": 72.4,
+  "modelName": "HybridRiskModel",
+  "modelVersion": "1.2.0",
+  "predictionId": "...",
+  "predictedAtUtc": "...",
+  "confidence": 0.86,
+  "warnings": []
+}
+```
+
+Gereksinimler:
+
+- Base URL, endpoint, timeout, API key ve retry ayarları config’ten gelsin.
+- API key source code’a yazılmasın.
+- Timeout, bağlantı hatası, 4xx, 5xx, bozuk JSON ve 0-100 dışı skor yönetilsin.
+- Sonsuz retry yapma; kontrollü retry ve circuit-breaker projede uygun paket varsa kullan.
+- İstek/yanıtın hassas olmayan özetini logla; secret veya gereksiz kişisel veri loglama.
+- `PredictionId`, model adı/sürümü ve ham response audit için saklanabilir; ancak boyut ve gizlilik dikkate alınmalı.
+- Mock client yalnızca Development/Test ortamında seçilebilir olsun.
+
+## 8. ERP ENTEGRASYONU
+
+ERP bağlantısı web servis/API üzerinden olacaktır. ERP türü henüz kesin olmayabilir. Bu nedenle sağlayıcıdan bağımsız port/adapter tasarımı kur:
+
+- `IErpClient`
+- `ErpClient`
+- Gerekirse `SapErpClient` gibi ileride eklenebilir implementasyon
+- `ErpOptions`
+- `ErpSyncService`
+
+Desteklenecek backend işlemleri:
+
+- ERP’den makine/ekipman çekme
+- ERP’den iş merkezi/şube/lokasyon bilgisi çekme
+- ERP’den sayaç/çalışma verisi çekme
+- ERP’den açık arıza veya iş emri çekme
+- Bakım planından ERP iş emri oluşturma
+- İş emri durumunu ERP’ye gönderme/güncelleme
+- Değiştirilen parça/stok hareketini ERP’ye gönderme veya ERP’den doğrulama
+- Senkronizasyon geçmişi ve hata kaydı tutma
+- Tekrar gönderme/retry desteği
+- Idempotency: aynı bakım planı için tekrar tekrar aynı ERP iş emri açılmasını önle
+
+ERP entegrasyon entity/DTO önerileri:
+
+- `ErpIntegrationLog`
+- `ErpSyncJob`
+- `ErpWorkOrderMapping`
+- `ExternalSystemReference`
+
+Her entegrasyon kaydında:
+
+- İç sistem ID
+- ERP dış ID
+- İşlem tipi
+- İstek zamanı
+- Sonuç zamanı
+- Durum
+- HTTP status veya ERP hata kodu
+- Retry sayısı
+- Correlation ID
+- Açıklama
+
+saklanmalıdır.
+
+ERP erişilemiyorsa kullanıcıya anlaşılır sonuç dön; local transaction başarıyla tamamlandıysa outbox/queue yaklaşımıyla daha sonra senkronize edilebilmesi için altyapı hazırla. Harici broker yoksa en azından veritabanı tabanlı outbox tablosu ve background worker tasarla.
+
+## 9. VERİTABANI SINIRI VE POSTGRESQL
+
+Nihai veritabanı tasarımını başka ekip üyesi sağlayacak. Bu nedenle:
+
+- PostgreSQL/Npgsql bağlantısını hazırla.
+- Entity ve DbContext mapping’lerini backend ihtiyaçlarına göre oluştur; ancak dışarıdan gelecek şemaya uyarlamayı kolaylaştır.
+- Tablo/sütun adlarını Fluent API ile merkezi map et.
+- `snake_case` tercihi varsa Npgsql naming convention kullan.
+- Foreign key, unique index, concurrency ve decimal precision tanımlarını açıkça yap.
+- Destructive migration veya database drop komutu çalışma.
+- Migration üretmek gerekiyorsa ayrı klasörde oluştur; çalıştırmayı otomatik yapma.
+- `Database.EnsureCreated()` kullanma.
+- Production başlangıcında otomatik migration çalıştırma.
+- `appsettings.json` içine gerçek parola koyma; örnek placeholder ve environment variable desteği ekle.
+- DbContext bağlantı hatalarını düzgün logla.
+- Transaction gerektiren işlemlerde EF Core transaction kullan.
+- Liste endpointlerinde `AsNoTracking()` kullan.
+- N+1 sorgularından kaçın; projection uygula.
+- Pagination zorunlu olsun.
+
+Entity’lerde ortak alanlar uygun ise:
+
+- `Id` (`Guid` tercih; mevcut şema integer ise mevcut yapıya uy)
+- `CreatedAtUtc`
+- `UpdatedAtUtc`
+- `CreatedBy`
+- `UpdatedBy`
+- `IsActive`
+- gerekiyorsa `RowVersion`/concurrency token
+
+Soft delete yalnızca proje genelinde mevcutsa veya gereklilik varsa kullan; her tabloya gereksiz ekleme.
+
+## 10. TEMEL ENTITY/MODEL KAPSAMI
+
+Mevcut veritabanı şeması gelince adları uyarlayabilirsin. Backend’in aşağıdaki iş kavramlarını desteklemesi gerekir:
+
+### Tanımlar
+
+- Company/Firma
+- Branch/Şube
+- WorkCenter/İş Merkezi
+- Machine/Makine
+- MachineComponent/Makine Bileşeni
+- FailureCode/Arıza Kodu
+- MaintenanceType/Bakım Türü
+- MaintenanceChecklist/Bakım Kontrol Listesi
+- MaintenanceChecklistItem/Kontrol Maddesi
+
+### Parametreler
+
+- RiskRuleSet
+- RiskRule
+- HybridDecisionParameter
+- MaintenanceRecommendationParameter
+
+### Makine İşlemleri
+
+- MachineCounterReading / WorkingData
+- MachineHealthSnapshot
+- SensorReading veya SensorSummary (şema uygunsa)
+
+### Arıza Yönetimi
+
+- FailureNotification
+- FailureIntervention
+- FailureClosure
+- FailureHistory/Event
+
+### Bakım Yönetimi
+
+- MaintenancePlan
+- MaintenancePlanTask
+- MaintenanceExecution
+- MaintenanceExecutionChecklistResult
+- ReplacedPart
+
+### Kestirimci Bakım
+
+- RiskAnalysis
+- RiskFactorResult
+- MlPredictionRecord
+- EarlyWarning
+- DecisionHistory
+- ManualDecision/Override
+
+### ERP ve Sistem
+
+- ErpIntegrationLog
+- ErpWorkOrderMapping
+- OutboxMessage
+- AuditLog
+
+Enum örnekleri:
+
+- `RiskLevel`
+- `MachineStatus`
+- `CriticalityLevel`
+- `FailureStatus`
+- `InterventionStatus`
+- `MaintenancePlanStatus`
+- `MaintenanceExecutionStatus`
+- `WarningStatus`
+- `DecisionType`
+- `IntegrationStatus`
+- `DataSourceType`
+
+Enum değerlerini PostgreSQL’e map ederken mevcut şemaya göre string veya int kullan; API’de string döndür.
+
+## 11. MODÜLLER VE CONTROLLER’LAR
+
+Mevcut frontend template’inin sayfaları için MVC controller/action ve JSON endpointlerini hazırla. Frontend ekibi view’ları değiştirebilir. View’larda ağır business logic bulunmasın.
+
+Önerilen controller’lar:
+
+1. `DashboardController`
+2. `MachinesController`
+3. `MachineComponentsController`
+4. `FailureCodesController`
+5. `MaintenanceTypesController`
+6. `MaintenanceChecklistsController`
+7. `RiskParametersController`
+8. `MachineWorkingDataController`
+9. `FailuresController`
+10. `MaintenancePlansController`
+11. `MaintenanceExecutionsController`
+12. `RiskAnalysesController`
+13. `EarlyWarningsController`
+14. `DecisionHistoryController`
+15. `ReportsController`
+16. `ErpIntegrationController`
+17. `SystemController` veya mevcut admin yapısı
+
+API route’larını mümkünse `/api/...` altında ayır veya MVC action’larında `[Produces("application/json")]` ile netleştir. Projenin mevcut route stiline uy.
+
+### Dashboard
+
+Sağlanacak veriler:
+
+- Acil bakım gereken makine sayısı
+- Bakımı yaklaşan makine sayısı
+- Bakım bekleyen makine sayısı
+- Açık arıza bildirimi sayısı
+- Bugün yapılacak bakım sayısı
+- Yüksek/Kritik riskli makine sayısı
+- Kritik makineler tablosu
+- Bugünkü bakımlar
+- Açık arızalar
+- Risk dağılımı
+- Son 7 gün arıza trendi
+- Bakım durumu dağılımı
+- Son ERP senkronizasyon zamanı/durumu
+
+Tek bir ağır sorgu yerine gerektiğinde optimize edilmiş projection’lar kullan. Dashboard response DTO oluştur.
+
+### Makine Listesi ve Detayı
+
+Liste filtreleri:
+
+- Firma
+- Şube/lokasyon
+- İş merkezi
+- Makine tipi
+- Kritiklik
+- Risk seviyesi
+- Bakım durumu
+- Makine durumu
+- Arama metni
+- Sayfa/sayfa boyutu/sıralama
+
+Makine detayında:
+
+- Genel bilgiler
+- Güncel sağlık/risk skoru
+- Son analiz zamanı
+- Çalışma saati/sayaç
+- Son bakım
+- Risk trendi
+- Bileşen sağlık durumu
+- Sensör özeti
+- Arıza geçmişi
+- Bakım geçmişi
+- Önerilen bakım
+- Notlar/ekler metadata’sı
+
+### Arıza Yönetimi
+
+- Arıza bildirimi oluştur/güncelle/detay/liste
+- Müdahale başlat
+- Müdahale kaydı ekle
+- Arızayı kapat
+- Durum geçişlerini doğrula
+- Kapanışta sonuç, kök neden, çözüm, gerçek duruş süresi alanlarını kaydet
+- Kapalı arızaya yeni müdahale eklemeyi engelle
+- Arıza geçmişi sorgula
+
+### Bakım Yönetimi
+
+- Hibrit analizden bakım taslağı oluştur
+- Planı kaydet/güncelle/onaya gönder/onayla/iptal et
+- Bakım görevleri ekle/sil/sırala/sorumlu ata
+- Bakımı başlat/tamamla
+- Checklist sonuçlarını kaydet
+- Değişen parçaları kaydet
+- Plan sorgulama ve bakım geçmişi
+- Takvim endpoint’i: tarih aralığına göre bakım kayıtları
+
+### Kestirimci Bakım
+
+- Tek makine analizi
+- Toplu analiz
+- Son analiz sonucu
+- Risk faktörü detayları
+- Erken uyarı listesi/detayı
+- Uyarıya sorumlu ata
+- Uyarıdan bakım planı oluştur
+- İşlem gerekmiyor kararı
+- Uyarıyı kapat
+- Karar geçmişi
+
+### Raporlar
+
+- Arıza analiz raporu
+- Bakım performans raporu
+- Model-kural karşılaştırma raporu
+
+Rapor endpointleri filtreli ve sayfalı veri döndürmeli; özet KPI’ları aynı response içinde veya ayrı endpoint ile sunmalıdır.
+
+## 12. ÖNEMLİ API SÖZLEŞMELERİ
+
+Standart response yapısı projede yoksa oluştur:
+
+```json
+{
+  "success": true,
+  "message": "",
+  "data": {},
+  "errors": [],
+  "traceId": "..."
+}
+```
+
+Validation veya business hatalarında doğru HTTP status kullan:
+
+- 200/201 başarı
+- 204 uygun silme/boş sonuç
+- 400 validation
+- 401/403 yetki
+- 404 bulunamadı
+- 409 conflict/concurrency/geçersiz durum geçişi
+- 422 iş kuralı ihlali uygun görülürse
+- 500 beklenmeyen hata
+- 502/503 harici ERP/ML servis problemi
+
+Global exception middleware/filter oluştur. Production’da stack trace dönme. `ProblemDetails` kullanımı mevcutsa onu tercih et.
+
+Pagination modeli:
+
+- `pageNumber`
+- `pageSize`
+- `totalCount`
+- `totalPages`
+- `hasPrevious`
+- `hasNext`
+- `items`
+
+Maksimum page size belirle.
+
+## 13. MVC VIEW VE FRONTEND ENTEGRASYONU
+
+Frontend ekip arkadaşı hazır template verecek. Bu nedenle:
+
+- Mevcut view’ları silme veya tasarımı baştan yazma.
+- Gerekli controller action’larını ve strongly typed ViewModel’leri oluştur.
+- View’lara entity gönderme; ViewModel gönder.
+- Frontend’in AJAX/fetch ile kullanacağı JSON endpointlerini hazırla.
+- CSRF korumasını MVC form işlemlerinde etkin tut.
+- Form validation mesajlarını backend’den anlamlı döndür.
+- Risk renkleri/etiketleri için semantic değer üret.
+- Boş/liste yükleniyor/hata durumlarına uygun model sağla.
+- View içinde sorgu veya risk hesabı yapma.
+- Minimum placeholder Razor view gerekiyorsa sade oluştur; asıl tasarım frontend tarafından eklenecektir.
+
+## 14. CSV VERİLERİNE HAZIRLIK
+
+Repository’de CSV dosyaları varsa hepsini tara ve kolonlarını analiz et.
+
+- CSV adlarını, kolonlarını, veri tiplerini ve örnek değerleri `BACKEND_README.md` içinde özetle.
+- CSV import doğrudan gerekmiyorsa bile `ICsvImportService` ile genişletilebilir altyapı kur.
+- Büyük CSV’lerde tüm dosyayı belleğe alma; streaming kullan.
+- Encoding, delimiter, tarih formatı, decimal separator ve boş değerleri yönet.
+- Import öncesi validation, satır bazlı hata raporu ve duplicate kontrolü yap.
+- CSV’den gelen veriyi doğrudan entity’ye bağlamadan import DTO kullan.
+- Import işlemi idempotent olmalı; aynı kayıt tekrar yüklenince duplicate oluşturmamalı.
+- Gerçek CSV repository’de yoksa kolon uydurma; sadece sözleşme ve TODO/adapter noktalarını açık bırak.
+
+## 15. BAKIM ÖNERİ KURALLARI
+
+Risk seviyesine göre başlangıç önerileri merkezi ve yapılandırılabilir olsun:
+
+- Düşük: önerilen gün yaklaşık 60, varsayılan bakım türü periyodik, otomatik bildirim opsiyonel
+- Orta: önerilen gün yaklaşık 30, planlı bakım
+- Yüksek: önerilen gün yaklaşık 15, acil bakım, onay gerekebilir
+- Kritik: önerilen gün yaklaşık 7 veya daha erken, acil müdahale, yönetici onayı/uyarı
+
+Bunlar veritabanındaki `MaintenanceRecommendationParameter` ile yönetilebilsin. Kod fallback değerleri yalnızca config üzerinden gelsin. Nihai risk sınırları ise kullanıcı tarafından verilen kesin sınıflandırmadan sapmasın.
+
+Otomatik plan oluşturma koşulları:
+
+- Veri yeterliliği eşik üzerinde
+- ML sonucu geçerli
+- Aynı makine için çakışan aktif plan yok
+- Aynı analiz için daha önce plan üretilmemiş
+- Gerekli onay politikası sağlanmış
+
+Otomatik üretilen plan başlangıçta `Draft` veya `Suggested` olsun; doğrudan tamamlanmış sayılmasın.
+
+## 16. İŞ KURALLARI VE DURUM GEÇİŞLERİ
+
+Durum geçişlerini merkezi servislerde doğrula.
+
+Örnek:
+
+- Failure: `Open -> InProgress -> Resolved -> Closed`
+- MaintenancePlan: `Suggested -> Draft -> PendingApproval -> Approved -> Planned -> InProgress -> Completed`
+- Warning: `Open -> Assigned -> ConvertedToPlan / NoActionRequired / Closed`
+
+Geçersiz geçişte `409 Conflict` veya business exception üret.
+
+Aynı analizden ikinci erken uyarı/plan oluşturmayı unique constraint ve servis kontrolü ile engelle.
+
+## 17. AUTHENTICATION, AUTHORIZATION VE AUDIT
+
+Projede authentication varsa kullan ve bozma. Yoksa temel hazırlığı yap, ancak kullanıcı sistemi kapsam dışıysa gereksiz Identity kurulumu yapma.
+
+Yetki politikaları/roller için hazır isimler:
+
+- `Admin`
+- `MaintenanceManager`
+- `MaintenanceEngineer`
+- `Technician`
+- `Analyst`
+- `Viewer`
+
+Kritik işlemler:
+
+- Parametre değiştirme
+- Manual override
+- Plan onayı
+- Kritik uyarı kapatma
+- ERP’ye iş emri gönderme
+
+uygun authorization policy ile korunmalıdır.
+
+Audit log:
+
+- Kim
+- Ne zaman
+- Hangi entity
+- Hangi işlem
+- Önceki/değişen değer özeti
+- Correlation/trace ID
+
+saklanmalıdır. Parola/token/secrets audit’e yazılmamalı.
+
+## 18. GÜVENLİK
+
+- SQL injection’a karşı EF parameterization kullan.
+- Mass assignment engelle; request DTO kullan.
+- API key/secrets config/env variable/user secrets üzerinden gelsin.
+- Hassas hata detaylarını istemciye verme.
+- Dosya yükleme varsa uzantı, MIME, boyut ve path traversal kontrolü yap.
+- CSV formula injection’a dikkat et; dışa aktarma varsa `=`, `+`, `-`, `@` başlangıçlarını güvenli hale getir.
+- Rate limit mevcut altyapı uygunsa analiz/ERP tetikleme endpointlerine ekle.
+- CORS yalnızca gerekli origin’lere izin verecek şekilde config’ten gelsin.
+- Antiforgery MVC post işlemlerinde etkin olsun.
+
+## 19. LOGGING, TRACE VE HEALTH CHECK
+
+- Her request için trace/correlation ID kullan.
+- Risk analizi başlangıç/bitiş, ML çağrısı, ERP çağrısı ve plan üretimini structured logla.
+- Health check ekle:
+  - Uygulama
+  - PostgreSQL
+  - ML servis erişimi
+  - ERP servis erişimi
+- Health endpoint’inde secret veya ayrıntılı iç sistem bilgisi açığa çıkarma.
+- Harici sistemlere ait başarısızlıkları dashboard’da gösterecek özet endpoint sağla.
+
+## 20. BACKGROUND JOBS
+
+Gerekirse `BackgroundService` kullan:
+
+- Bekleyen outbox mesajlarını ERP’ye gönderme
+- Periyodik risk analizi tetikleme
+- Süresi yaklaşan bakım uyarıları
+- ERP senkronizasyonu
+
+Ancak iş zamanlayıcı bilgileri kesin değilse varsayılan olarak job’ları config ile kapalı getir. Aynı job’ın birden fazla instance tarafından eşzamanlı çalışmasını engelleyecek lock/idempotency yaklaşımı düşün.
+
+## 21. TESTLER
+
+En az aşağıdaki testleri yaz:
+
+### Unit test
+
+- Risk sınır değerleri
+- Clamp davranışı
+- `%30/%70` hibrit hesap
+- Ağırlık toplamı validation
+- ML 0, 100 ve ondalıklı skor
+- ML başarısızlık politikası
+- Algoritmik faktör toplamı
+- Veri yeterliliği
+- Bakım önerisi seçimi
+- Durum geçişleri
+- Duplicate plan/uyarı engeli
+
+### Integration test
+
+- Risk analizi endpoint’i
+- Makine listesi filtre/pagination
+- Arıza oluşturma ve kapatma
+- Bakım planı oluşturma
+- Uyarıdan plan üretme
+- ERP/ML mock HttpMessageHandler ile başarı ve hata senaryoları
+
+PostgreSQL test altyapısı mevcut değilse EF InMemory’nin ilişkisel davranış farklarını not et; mümkünse test container veya SQLite relational yaklaşımını mevcut projeye uygun kullan.
+
+## 22. PERFORMANS
+
+- Liste sorgularında projection ve pagination
+- Büyük dashboard sorgularında uygun aggregate
+- Gereksiz `Include` kullanma
+- Read-only sorgularda `AsNoTracking`
+- Tarih ve foreign key alanlarına indeks önerileri
+- Aynı makineye çoklu paralel analiz için concurrency koruması
+- ML çağrısını DB transaction içinde uzun süre açık tutma; orchestration akışını doğru böl
+- Toplu analizde sınırlı concurrency kullan, sistemi ve ML servisini boğma
+
+## 23. KONFİGÜRASYON
+
+`appsettings.json` veya örnek dosyada aşağıdaki bölümler bulunmalı; gerçek secret içermemeli:
+
+```json
+{
+  "ConnectionStrings": {
+    "PostgreSql": "Host=localhost;Port=5432;Database=onleyici_bakim;Username=...;Password=..."
+  },
+  "HybridRisk": {
+    "AlgorithmWeight": 0.30,
+    "MlWeight": 0.70,
+    "MlFailurePolicy": "FailClosed",
+    "MinimumDataCompletenessPercent": 60
+  },
+  "MlService": {
+    "BaseUrl": "https://ml-service.example",
+    "PredictionEndpoint": "/api/predict",
+    "TimeoutSeconds": 15,
+    "ApiKey": ""
+  },
+  "Erp": {
+    "Provider": "Generic",
+    "BaseUrl": "https://erp.example",
+    "TimeoutSeconds": 30,
+    "ApiKey": "",
+    "EnableBackgroundSync": false
+  }
+}
+```
+
+Options class’larını bind et ve startup validation uygula.
+
+## 24. ÖNERİLEN ENDPOINT ÖRNEKLERİ
+
+Mevcut route yapısına uyarlayarak en az şu kabiliyetleri sağla:
+
+- `GET /api/dashboard/summary`
+- `GET /api/machines`
+- `GET /api/machines/{id}`
+- `GET /api/machines/{id}/health`
+- `GET /api/machines/{id}/risk-trend`
+- `POST /api/machines/{id}/working-data`
+- `GET /api/failures`
+- `POST /api/failures`
+- `POST /api/failures/{id}/interventions`
+- `POST /api/failures/{id}/close`
+- `GET /api/maintenance-plans`
+- `POST /api/maintenance-plans`
+- `POST /api/maintenance-plans/from-analysis/{analysisId}`
+- `POST /api/maintenance-plans/{id}/approve`
+- `POST /api/maintenance-executions/{id}/start`
+- `POST /api/maintenance-executions/{id}/complete`
+- `POST /api/risk-analyses/machines/{machineId}`
+- `POST /api/risk-analyses/bulk`
+- `GET /api/risk-analyses/{id}`
+- `GET /api/early-warnings`
+- `POST /api/early-warnings/{id}/assign`
+- `POST /api/early-warnings/{id}/create-maintenance-plan`
+- `POST /api/early-warnings/{id}/no-action`
+- `POST /api/early-warnings/{id}/close`
+- `GET /api/decision-history`
+- `GET /api/reports/failure-analysis`
+- `GET /api/reports/maintenance-performance`
+- `GET /api/reports/model-rule-comparison`
+- `POST /api/erp/sync/machines`
+- `POST /api/erp/work-orders/{maintenancePlanId}`
+- `GET /api/erp/integration-logs`
+
+Endpoint isimlerini mevcut standartla uyumlu hale getir; tek bir entity için hem MVC hem API controller gerekiyorsa sorumlulukları ayır.
+
+## 25. RİSK ANALİZİ ORKESTRASYON AKIŞI
+
+`RiskAnalysisService` aşağıdaki sırayı izlemeli:
+
+1. Makineyi doğrula.
+2. Gerekli geçmiş arıza, bakım, sayaç ve varsa sensör özetlerini çek.
+3. Feature set oluştur.
+4. Veri yeterliliğini hesapla.
+5. Algoritmik risk skorunu ve faktör detaylarını hesapla.
+6. ML request oluştur ve tahmin servisinden sonucu al.
+7. ML sonucu/response geçerliliğini doğrula.
+8. `%30/%70` hibrit skoru hesapla.
+9. Kesin risk seviyesini merkezi sınıflandırıcıyla belirle.
+10. Bakım öneri parametresini seç.
+11. `RiskAnalysis`, faktörler, ML kayıt ve `DecisionHistory` verilerini transaction ile kaydet.
+12. Gerekliyse ve kurallar uygunsa `EarlyWarning` oluştur.
+13. Otomatik plan taslağı özelliği açıksa duplicate kontrolüyle taslak üret.
+14. Sonucu DTO olarak dön.
+
+Harici ML çağrısı sırasında uzun DB transaction tutma. Önce veri snapshot’ını al, çağrıyı yap, ardından kısa transaction ile kayıtları yaz. Makine verisi değişmişse analiz snapshot zamanı/version bilgisini sakla.
+
+## 26. RAPOR HESAPLARI
+
+### Arıza Analiz Raporu
+
+- Arıza sayısı
+- Tekrarlayan arıza oranı
+- Toplam/ortalama duruş süresi
+- Arıza türüne göre dağılım
+- Risk etkisi
+- Tarih, makine, arıza kodu, risk ve iş merkezi filtreleri
+
+### Bakım Performans Raporu
+
+- Tamamlanan bakım
+- Geciken bakım
+- Ortalama bakım süresi
+- Önleyici bakım oranı
+- Planlanan-gerçekleşen tarih farkı
+- Bakım öncesi ve sonrası risk değişimi
+
+### Model-Kural Karşılaştırma
+
+- Algoritmik puan
+- ML puanı
+- Nihai puan
+- Mutlak fark
+- Uyum/uyumsuzluk
+- Model versiyonu
+- Kural seti versiyonu
+- Manual inceleme durumu
+
+Uyumsuzluk eşiği config/parametre ile yönetilebilir; fakat nihai risk sınıfı sınırları sabittir.
+
+## 27. BACKEND README İÇERİĞİ
+
+`BACKEND_README.md` içinde şunları yaz:
+
+- Mimari ve klasör yapısı
+- Kullanılan teknoloji/paketler
+- PostgreSQL bağlantı ayarı
+- ML entegrasyon sözleşmesi
+- ERP entegrasyon sözleşmesi
+- Hibrit risk formülü
+- Kesin risk aralıkları
+- Algoritmik risk faktörleri
+- Endpoint tablosu
+- Oluşturulan controller/service/entity/DTO dosyaları
+- Migration durumu
+- Test çalıştırma komutları
+- Uygulamayı ayağa kaldırma adımları
+- Eksik dış bağımlılıklar ve beklenen ekip teslimleri
+- Frontend’in hangi endpointleri kullanacağı
+- CSV dosyaları bulunduysa analiz özeti
+- Bilinen TODO’lar, ancak backend içinde tamamlanabilir hiçbir işi TODO bırakma
+
+## 28. TAMAMLAMA KRİTERLERİ
+
+Görev ancak aşağıdakilerin tamamı sağlanınca bitmiş sayılır:
+
+- Proje derleniyor.
+- Backend katmanında eksik namespace veya DI kaydı yok.
+- Controller’lar service katmanına bağlı.
+- Risk hesabı merkezi ve testli.
+- `%30 algoritmik + %70 ML` doğru uygulanıyor.
+- Risk sınıfları tam sınır değerlerle doğru.
+- PostgreSQL DbContext/config hazır.
+- ML client ve ERP client hazır.
+- Hata yönetimi, validation, logging ve pagination var.
+- Temel CRUD ve iş akışı endpointleri mevcut.
+- Dashboard ve rapor DTO/servisleri mevcut.
+- Decision history ve entegrasyon logları mevcut.
+- Frontend template bağlanabilecek MVC actions/ViewModel/JSON endpointleri hazır.
+- Testler çalışıyor.
+- `BACKEND_README.md` oluşturulmuş.
+- Kodda gerçek parola, token veya API key yok.
+- Database’i silen veya otomatik destructive migration yapan kod yok.
+
+## 29. SON ÇIKTI FORMATIN
+
+Kod değişikliklerini yaptıktan sonra bana şu sırayla rapor ver:
+
+1. Mevcut projede tespit ettiğin yapı
+2. Eklediğin/değiştirdiğin dosyalar
+3. Mimari kararlar
+4. Entity ve ilişkiler
+5. Controller ve endpoint listesi
+6. Risk algoritmasının açıklaması
+7. ML entegrasyonu
+8. ERP entegrasyonu
+9. PostgreSQL bağlantı/migration durumu
+10. Test sonuçları
+11. Derleme sonucu
+12. Frontend ekibinin bağlanması için kısa rehber
+13. Veritabanı ekip arkadaşından beklenen kesin bilgiler
+14. ML ekip arkadaşından beklenen kesin API sözleşmesi
+15. Kalan dış bağımlılıklar
+
+Kod yazmaya başlamadan sadece analiz raporu verme; repository’yi analiz ettikten sonra doğrudan gerekli backend kodlarını oluştur ve projeyi çalışır hale getir.
+
+## 30. FRONTEND GELENE KADAR BACKEND TEST ORTAMI — ZORUNLU
+
+Frontend henüz hazır değildir. Bu nedenle backend geliştiricisinin tüm özellikleri tarayıcıdan ve API istemcilerinden test edebilmesi için geçici ama çalışır bir test ortamı oluştur. Bu test araçları gerçek frontend yerine geçici olarak kullanılacak; sonradan frontend ekibinin template'i bağlandığında backend iş kuralları değiştirilmeden kaldırılabilir veya yalnızca Development ortamında bırakılabilir.
+
+### 30.1 Swagger / OpenAPI
+
+- Projede mevcutsa Swagger/OpenAPI yapılandırmasını tamamla; yoksa mevcut framework sürümüyle uyumlu biçimde ekle.
+- Tüm REST endpointleri Swagger üzerinden çağrılabilir olsun.
+- Request/response DTO şemaları, enum açıklamaları, olası HTTP durum kodları ve örnek payload'lar görünsün.
+- JWT veya başka authentication varsa Swagger'a yetkilendirme desteği ekle.
+- Development ortamında Swagger UI varsayılan olarak açık olsun.
+- Production ortamında güvenlik nedeniyle otomatik açık bırakma; config ile yönet.
+- Hibrit analiz, algoritmik analiz, ML mock tahmini, ERP mock senkronizasyonu, bakım planı oluşturma ve arıza kapatma gibi iş akışları Swagger'dan uçtan uca denenebilsin.
+
+### 30.2 Geçici Backend Test Paneli
+
+ASP.NET Core MVC/Razor kullanarak yalnızca Development ortamında çalışan sade bir `Backend Test Paneli` oluştur. Bu panel tasarım odaklı olmayacak; backend fonksiyonlarını elle doğrulamak için kullanılacaktır.
+
+Önerilen route:
+
+- `/dev-test`
+- `/dev-test/machines`
+- `/dev-test/failures`
+- `/dev-test/risk-analysis`
+- `/dev-test/maintenance`
+- `/dev-test/integrations`
+- `/dev-test/logs`
+
+Panelde aşağıdaki işlemler yapılabilsin:
+
+1. Dashboard test özeti
+   - Toplam makine
+   - Açık arıza
+   - Yaklaşan/geciken bakım
+   - Risk seviyelerine göre makine sayıları
+   - Son hibrit analizler
+   - ERP ve ML bağlantı durumu
+
+2. Makine test işlemleri
+   - Makine listeleme, arama, filtreleme
+   - Makine detayını görüntüleme
+   - Geçici test makinesi oluşturma/güncelleme/silme
+   - Sayaç/çalışma verisi girişi
+   - Makine bileşeni ekleme
+
+3. Arıza test işlemleri
+   - Arıza bildirimi oluşturma
+   - Müdahaleyi başlatma
+   - Müdahale kaydı ekleme
+   - Arızayı kapatma
+   - Arıza geçmişini görüntüleme
+
+4. Risk analizi test işlemleri
+   - Makine seçme
+   - Algoritmik risk hesabını tek başına çalıştırma
+   - Hesaplanan faktörlerin ham değer, normalize değer, ağırlık ve katkılarını tablo halinde gösterme
+   - Development ML mock client'ından tahmin alma
+   - Hibrit hesabı çalıştırma
+   - Algoritmik puan, ML puanı, `%30/%70` ağırlık, nihai puan, sınıf ve renk anahtarını gösterme
+   - `29.999`, `30`, `59.999`, `60`, `79.999`, `80`, `100` gibi sınır değerlerini hızlı test eden ayrı bölüm oluşturma
+   - ML servisi kapalı, timeout veya hatalı skor senaryolarını simüle edebilme
+   - `FailClosed` ve `AlgorithmOnlyFallback` davranışlarını test edebilme
+
+5. Bakım test işlemleri
+   - Risk analizinden bakım önerisi oluşturma
+   - Bakım planı oluşturma
+   - Plan görevleri ekleme
+   - Planı onaylama/iptal etme
+   - Bakımı başlatma ve tamamlama
+   - Kontrol listesi sonuçlarını girme
+   - Değiştirilen parçaları kaydetme
+   - Bakım geçmişini görüntüleme
+
+6. Entegrasyon test işlemleri
+   - Development ERP mock üzerinden makine verisi çekme
+   - İş emri gönderme
+   - Senkronizasyon sonucunu ve logunu görüntüleme
+   - Development ML mock için örnek request gönderme ve response görüntüleme
+   - Gerçek dış servis ayarları girilmişse bağlantı testi yapma; secret değerleri ekranda açık gösterme
+
+7. Karar geçmişi ve loglar
+   - Son hibrit kararları listeleme
+   - Kullanılan model/kural sürümünü gösterme
+   - Manual override kayıtlarını gösterme
+   - Entegrasyon loglarını ve hata özetlerini gösterme
+   - Hassas verileri göstermeme
+
+### 30.3 Test Paneli Mimari Kuralları
+
+- Test paneli doğrudan `DbContext` veya iş kurallarına erişmesin; gerçek controller/service katmanlarını kullansın.
+- Backend test paneli için iş mantığını kopyalama.
+- Test paneline özel ViewModel'ler oluşturulabilir.
+- Panel yalnızca `Development` ortamında endpoint olarak map edilsin.
+- Production ortamında `/dev-test` erişilemez olmalıdır; sadece UI'da gizlemek yeterli değildir.
+- Gerekirse `DevelopmentOnlyAttribute`, middleware veya environment kontrolü kullan.
+- Paneldeki formlarda antiforgery token, server-side validation ve hata mesajları bulunsun.
+- Silme gibi işlemlerde onay iste; fakat production verisine karşı çalıştırılmayacağı açık olsun.
+- Test paneli CSS/JS bakımından basit Bootstrap veya mevcut proje stilini kullanabilir. Frontend arkadaşının template'ine bağımlı olmasın.
+
+### 30.4 Development Mock Servisleri
+
+Gerçek ML ve ERP servisleri henüz hazır olmayabileceği için yalnızca Development/Test ortamlarında çalışan kontrollü mock implementasyonlar oluştur:
+
+- `MockMlPredictionClient`
+- `MockErpClient`
+
+Kurallar:
+
+- Interface'ler gerçek implementasyonlarla aynı olsun.
+- `appsettings.Development.json` üzerinden seçilebilsin.
+- Production ortamında mock seçilmişse uygulama başlangıcında kritik hata ver veya başlamayı reddet.
+- Mock ML skoru sabit tek değer döndürmesin. Girdilere göre deterministik ve açıklanabilir örnek skor üretsin ya da seçilebilir senaryolar kullansın.
+- Kullanıcı test panelinden `Normal`, `HighRisk`, `Timeout`, `InvalidScore`, `ServerError` gibi ML senaryolarını seçebilsin.
+- ERP mock için `Success`, `ValidationError`, `Timeout`, `DuplicateWorkOrder`, `ServerError` senaryoları bulunabilsin.
+- Mock sonuçları açıkça `IsMock=true` olarak işaretlensin ve karar geçmişinde gerçek üretim sonucu gibi değerlendirilmesin.
+
+### 30.5 Geliştirme Verisi / Seed
+
+Veritabanı ekip arkadaşının nihai şeması gelene kadar test amacıyla kontrollü seed altyapısı oluştur:
+
+- Seed yalnızca Development/Test ortamında çalışsın.
+- Uygulama her açıldığında aynı kayıtları tekrar eklemesin; idempotent olsun.
+- Örnek olarak farklı risk ve süreçleri temsil eden en az birkaç makine, bileşen, arıza, çalışma verisi, bakım türü ve bakım kaydı ekle.
+- Seed verilerini ayrı sınıflarda tut: örneğin `DevelopmentDataSeeder`.
+- Production veritabanına seed çalıştırma.
+- Nihai PostgreSQL şeması geldiğinde mapping kolay değiştirilebilsin.
+- Veritabanı hiç hazır değilse yalnızca test amacıyla EF Core InMemory veya SQLite seçeneği eklenebilir; fakat PostgreSQL ana hedef olmaya devam etmeli ve bu seçim config ile açıkça belirtilmelidir.
+
+### 30.6 Otomatik Testler
+
+Aşağıdaki testleri ekle ve çalıştır:
+
+- Risk sınıflandırma sınır değer unit testleri
+- `%30 algoritmik + %70 ML` hibrit hesap testleri
+- Clamp testleri
+- Eksik veri yeterliliği testleri
+- ML başarısızlık politikası testleri
+- Bakım önerisi üretme testleri
+- Arıza açma/müdahale/kapatma akış testleri
+- Bakım planlama ve tamamlama akış testleri
+- Controller validation testleri
+- Development test panelinin Production ortamında erişilemediğini doğrulayan test
+- Temel API integration testleri için `WebApplicationFactory` kullan
+
+### 30.7 Postman / HTTP Test Dosyaları
+
+Repository içine aşağıdakilerden en az birini, tercihen ikisini de ekle:
+
+- `OnleyiciBakim.postman_collection.json`
+- `OnleyiciBakim.http`
+
+İçerik grupları:
+
+- Health
+- Authentication varsa login
+- Machines
+- Failures
+- Working Data
+- Algorithmic Risk
+- ML Prediction
+- Hybrid Risk
+- Maintenance Suggestions
+- Maintenance Plans
+- Maintenance Execution
+- Early Warnings
+- Reports
+- ERP Integration
+
+Environment değişkenleri:
+
+- `baseUrl`
+- `token`
+- `machineId`
+- `failureId`
+- `riskAnalysisId`
+- `maintenancePlanId`
+
+Örnek istek gövdeleri ve başarılı/başarısız senaryolar ekle.
+
+### 30.8 Health Check ve Tanılama
+
+- `/health` genel durum endpointi
+- `/health/ready` PostgreSQL, ML ve ERP readiness sonucu
+- `/health/live` uygulama canlılık sonucu
+- Development test panelinde health sonuçlarını göster.
+- Dış servis hataları uygulamanın tamamını gereksiz yere çökertmesin; readiness sonucu ayrıntılı fakat güvenli şekilde raporlansın.
+
+### 30.9 Frontend Geldiğinde Birleştirme Kolaylığı
+
+Backend test panelini gerçek frontend'den ayır:
+
+- Gerçek frontend'in kullanacağı API endpointleri `/api/...` altında kararlı olsun.
+- Test paneli aynı service'leri kullansın fakat frontend API sözleşmesini değiştirmesin.
+- Response DTO'lar test paneline özel hale getirilmesin.
+- CORS ayarları config üzerinden frontend origin listesi kabul etsin.
+- API versioning mevcutsa koru; yoksa gereksiz yere karmaşıklaştırma.
+- `FRONTEND_INTEGRATION_GUIDE.md` oluştur ve şunları yaz:
+  - Base URL
+  - Endpoint listesi
+  - Request/response örnekleri
+  - Authentication kullanımı
+  - Pagination/filter/sort formatı
+  - Risk alanları ve renk anahtarları
+  - Hata response formatı
+  - Tarih formatı ve timezone yaklaşımı
+  - CORS ayarı
+  - Frontend template geldiğinde test panelinin nasıl devre dışı bırakılacağı
+
+## 31. GÜNCELLENMİŞ TAMAMLAMA KRİTERLERİ
+
+Önceki kriterlere ek olarak görev ancak aşağıdakiler de sağlandığında tamamlanmış sayılır:
+
+- Swagger üzerinden temel backend işlemleri denenebiliyor.
+- Development ortamında çalışan geçici Backend Test Paneli var.
+- Panel üzerinden makine, arıza, risk analizi, bakım ve entegrasyon senaryoları test edilebiliyor.
+- Mock ML ve ERP servisleri yalnızca Development/Test ortamında çalışıyor.
+- Development seed verileri mevcut ve idempotent.
+- Postman collection veya `.http` test dosyası mevcut.
+- Health check endpointleri mevcut.
+- Production ortamında `/dev-test` ve mock servisler kapalı.
+- `FRONTEND_INTEGRATION_GUIDE.md` oluşturulmuş.
+- Frontend geldiğinde backend servisleri ve API sözleşmesi değiştirilmeden entegrasyon yapılabiliyor.
+
+Son raporuna ayrıca şu başlıkları ekle:
+
+16. Swagger ve API test durumu
+17. Backend Test Paneli route ve özellikleri
+18. Mock ML/ERP senaryoları
+19. Seed/test verileri
+20. Postman veya `.http` dosyası
+21. Frontend entegrasyon rehberi
+
+# 24. @FrontEnd KLASÖRÜNÜ ANALİZ ET, EKSİK EKRANLARI GEÇİCİ OLARAK TAMAMLA
+
+Frontend geliştiricisinin hazırladığı dosyalar repository içinde **`@FrontEnd`** adlı klasörde bulunmaktadır. Bu klasör dışarıdan verilen hazır frontend/template kaynağıdır. Backend geliştirmesine başlamadan önce bu klasörü bütünüyle tara ve aşağıdaki işlemleri uygula.
+
+## 24.1 İlk analiz
+
+1. `@FrontEnd` klasöründeki bütün dosya ve alt klasörleri incele.
+2. Kullanılan frontend teknolojisini otomatik belirle:
+   - ASP.NET Core MVC Razor View,
+   - HTML/CSS/JavaScript,
+   - Bootstrap,
+   - React/Vue/Angular,
+   - hazır admin template,
+   - veya başka bir yapı.
+3. `package.json`, build dosyaları, layout, component, partial, view, CSS, JavaScript, görsel ve font bağımlılıklarını incele.
+4. Hangi ekranların tamamlandığını, hangilerinin yalnızca tasarım olduğunu, hangilerinin hiç yapılmadığını belirle.
+5. `FRONTEND_STATUS.md` oluştur ve her ekranı şu statülerden biriyle listele:
+   - `Hazır ve kullanılabilir`
+   - `Tasarım var, backend bağlantısı yok`
+   - `Kısmen yapılmış`
+   - `Eksik`
+   - `PDF/video referansından geçici oluşturuldu`
+6. Hazır frontend dosyalarını silme, gereksiz yere yeniden yazma veya tasarımını bozma.
+7. Frontend arkadaşının yaptığı bölümleri esas kaynak kabul et. Yeni oluşturacağın geçici ekranları aynı görsel stile yaklaştır.
+
+## 24.2 @FrontEnd klasörünü projede referans olarak göster
+
+- Repository içindeki `@FrontEnd` klasörünü kaynak/template klasörü olarak koru.
+- ASP.NET Core MVC projesinin çalıştırdığı gerçek ekranlar gerekiyorsa `Views`, `wwwroot`, component veya mevcut frontend uygulamasının doğru klasörlerine entegre edilsin.
+- `@FrontEnd` klasöründeki dosyaları rastgele kopyalama. Önce bağımlılıkları ve dosya yollarını analiz et.
+- Hangi dosyanın `@FrontEnd` içinden nereye taşındığını/kopyalandığını `FRONTEND_INTEGRATION_GUIDE.md` içinde tablo halinde açıkla.
+- Orijinal frontend kaynağını korumak için mümkünse doğrudan değiştirmek yerine entegre edilen kopya üzerinde çalış. Ancak repository yapısı doğrudan `@FrontEnd` içinden çalışıyorsa mevcut yapıyı koru.
+
+## 24.3 Eksik ekranlar için geçici frontend oluştur
+
+Frontend ekibinin henüz tamamlamadığı ekranların işlevlerini test etmek amacıyla **gösterimlik ama çalışan geçici frontend ekranları** oluştur. Bunlar yalnızca boş maket olmasın; gerçek backend endpointlerini çağırarak CRUD, filtreleme ve iş akışı testlerine izin versin.
+
+Geçici ekranların amacı:
+
+- Backend özelliklerinin tarayıcıdan test edilmesi,
+- sunum/demo yapılabilmesi,
+- frontend tamamlandığında backend sözleşmesinin hazır olması,
+- takım arkadaşının gerçek frontend’i ile daha sonra kolayca birleştirilmesi.
+
+Geçici frontend için kurallar:
+
+- Yeni ve ağır bir frontend framework’ü ekleme.
+- Proje MVC/Razor ise Razor View + Bootstrap/var olan CSS ile devam et.
+- Mevcut frontend React/Vue vb. ise onun mevcut component yapısını ve build sistemini kullan.
+- Aynı proje içinde ikinci ve gereksiz bir frontend teknolojisi oluşturma.
+- Hazır temanın menü, header, kart, tablo, form, modal, badge ve renk yapısını taklit et.
+- PDF’deki ekranları birebir piksel kopyalamaya çalışma; işlevsel ve tutarlı bir demo üret.
+- Bütün form işlemleri gerçek service/controller katmanından geçsin; View içine iş kuralı yazma.
+- Geçici ekranlarda `Temp`, `Mock UI` veya kullanıcıya rahatsız edici geliştirici etiketleri gösterme. Kod içinde açıklayıcı yorum kullanılabilir.
+
+## 24.4 Tamamlanması gereken geçici ekranlar
+
+`@FrontEnd` içinde mevcut olanları tekrar oluşturma. Eksik veya yarım kalanları aşağıdaki kapsamdan tamamla:
+
+### Ana gösterge paneli
+
+- Toplam makine
+- düşük/orta/yüksek/kritik risk adetleri
+- acil bakım gerekenler
+- yaklaşan bakımlar
+- geciken bakımlar
+- açık arızalar
+- bugün yapılacak bakımlar
+- son analizler
+- risk dağılımı
+- bakım durumları
+- son senkronizasyon bilgisi
+
+### Makine yönetimi
+
+- Makine listesi
+- arama, filtreleme ve sayfalama
+- makine oluşturma/düzenleme/detay
+- makine bileşenleri
+- çalışma/sayaç verisi girişi
+- makine sağlık/risk özeti
+- makineye ait arıza ve bakım geçmişi
+
+### Tanımlar
+
+- Makine/ekipman tanımı
+- makine bileşeni tanımı
+- arıza kodu tanımı
+- bakım türü tanımı
+- bakım kontrol listesi tanımı
+
+### Parametreler
+
+- Risk kural parametreleri
+- algoritmik faktör ağırlıkları
+- hibrit karar parametreleri
+- `%30 algoritmik / %70 ML` ağırlık görünümü
+- bakım öneri parametreleri
+- veri yeterliliği ve fallback seçenekleri
+
+### Arıza yönetimi
+
+- Arıza bildirimi oluşturma
+- açık arıza listesi
+- arıza detay ekranı
+- müdahale başlatma
+- müdahale kaydı ekleme
+- arıza kapatma
+- arıza geçmişi sorgulama
+
+### Kestirimci/önleyici bakım
+
+- Tek makine için risk analizi başlatma
+- toplu analiz başlatma
+- algoritmik puan, ML puanı ve nihai puanı ayrı gösterme
+- faktör katkılarını gösterme
+- veri yeterliliğini gösterme
+- risk seviyesi ve semantic renk anahtarını gösterme
+- erken uyarı listesi
+- uyarı detayı
+- uyarıyı sorumluya atama
+- uyarıdan bakım planı oluşturma
+- işlem gerekmiyor kararı
+- karar geçmişi
+
+### Bakım yönetimi
+
+- Hibrit bakım önerileri
+- bakım planı oluşturma/düzenleme
+- bakım görevleri
+- sorumlu atama
+- bakım takvimi için basit liste veya takvim görünümü
+- bakım gerçekleştirme
+- kontrol listesi sonuçları
+- değiştirilen parçalar
+- bakım planı sorgulama
+- bakım geçmişi
+
+### ERP entegrasyonu
+
+- ERP bağlantı durumu
+- manuel senkronizasyon başlatma
+- senkronizasyon geçmişi
+- hata kayıtları
+- yeniden deneme
+- bakım planından ERP iş emri oluşturma testi
+- iş emri durumunu görüntüleme
+
+### Raporlar
+
+- Arıza analiz raporu
+- bakım performans raporu
+- model ve kural karşılaştırma raporu
+- tarih ve risk filtresi
+- en azından tablo ve özet kartları
+- mümkünse mevcut chart kütüphanesiyle basit grafikler; yeni ağır kütüphane ekleme
+
+## 24.5 Backend bağlantısı
+
+Her geçici ekran gerçek backend endpointlerini kullansın.
+
+- MVC yapısında Controller -> Service -> Repository/DbContext zincirini kullan.
+- JavaScript fetch/AJAX kullanılıyorsa endpoint URL’lerini tek bir merkezi yapıdan yönet.
+- Entity’leri doğrudan View’a vermek yerine ViewModel kullan.
+- Formlarda server-side validation göster.
+- Uygun yerlerde client-side validation da ekle.
+- Başarı ve hata mesajlarını kullanıcıya anlaşılır Türkçe göster.
+- HTTP 400, 404, 409, 422 ve 500 durumlarını düzgün ele al.
+- Liste ekranlarında loading, boş veri ve hata durumları bulunsun.
+- Silme ve kritik karar işlemlerinde onay iste.
+- CSRF/antiforgery korumasını MVC formlarında etkin kullan.
+
+## 24.6 Frontend için kesin risk gösterimi
+
+Frontend’in bütün ekranlarında backend’den gelen merkezi sınıflandırmayı kullan:
+
+- `0 <= puan < 30`: Düşük – yeşil
+- `30 <= puan < 60`: Orta – amber/sarı
+- `60 <= puan < 80`: Yüksek – kırmızı
+- `80 <= puan <= 100`: Kritik – koyu kırmızı/bordo
+
+Frontend kendi başına farklı risk hesabı yapmasın. Backend’den gelen şu alanları kullansın:
+
+- `riskScore`
+- `riskLevel`
+- `riskLevelDisplayName`
+- `riskColorKey`
+
+CSS tarafında semantic sınıflar oluştur:
+
+- `.risk-low`
+- `.risk-medium`
+- `.risk-high`
+- `.risk-critical`
+
+`Yüksek` ve `Kritik` aynı görsel ton olmasın. Kritik belirgin biçimde daha koyu/bordo olsun.
+
+## 24.7 ML ve ERP henüz hazır değilken demo davranışı
+
+Development ortamında:
+
+- Mock ML ve Mock ERP seçenekleri kullanılabilir.
+- Kullanıcı test ekranından algoritmik ve mock ML girdileriyle analiz çalıştırabilir.
+- Mock kullanıldığı ekranda küçük ve anlaşılır bir geliştirme ortamı bilgisi gösterilebilir.
+- Mock sonuçlar veritabanında gerçek sonuç gibi gizlenmemeli; `IsMock`, `IsFallback`, `Source` veya eşdeğer alanla ayrılmalı.
+
+Production ortamında:
+
+- Mock ML, Mock ERP ve geliştirici test endpointleri kapalı olmalıdır.
+- Ulaşılamayan servis için sahte başarılı sonuç dönülmemelidir.
+
+## 24.8 Birleştirmeyi kolaylaştır
+
+Frontend takım arkadaşının daha sonra kendi ekranlarını projeye eklemesini kolaylaştırmak için:
+
+1. UI ile backend arasına ViewModel/DTO sözleşmesi koy.
+2. Endpointleri kararlı ve REST uyumlu tut.
+3. UI dosyalarında iş kuralı bulundurma.
+4. API URL’lerini ve JavaScript çağrılarını merkezi dosyada tut.
+5. Her ekranın kullandığı endpointleri `FRONTEND_INTEGRATION_GUIDE.md` içinde yaz.
+6. Geçici ekranları mümkün olduğunca bağımsız partial/component halinde geliştir.
+7. Frontend arkadaşının değiştireceği dosyalara açık yorumlar koy; ancak kodu yorumlarla kirletme.
+8. Mevcut frontend ile geçici frontend çakışıyorsa hazır olan ekranı koru, yalnızca eksik işlevi tamamla.
+9. Aynı route/action/component için duplicate oluşturma.
+10. Son birleştirmede silinebilecek yalnızca-demo dosyalarını ayrıca listele.
+
+## 24.9 Zorunlu test ve teslim çıktıları
+
+Aşağıdakileri gerçekleştir:
+
+- Bütün frontend build adımlarını çalıştır.
+- ASP.NET projesini build et.
+- En azından ana sayfa, makine listesi, risk analizi, arıza oluşturma ve bakım planlama akışlarını test et.
+- Bozuk link, bulunamayan static asset ve JavaScript console hatalarını düzelt.
+- Backend endpointlerinin Swagger üzerinden de çalıştığını doğrula.
+- `FRONTEND_STATUS.md` oluştur.
+- `FRONTEND_INTEGRATION_GUIDE.md` oluştur.
+- `DEMO_TEST_SCENARIOS.md` oluştur.
+
+`DEMO_TEST_SCENARIOS.md` içinde adım adım en az şu senaryolar yer alsın:
+
+1. Yeni makine ekle.
+2. Makineye sayaç/çalışma verisi gir.
+3. Makine için arıza bildirimi oluştur.
+4. Algoritmik risk analizi çalıştır.
+5. ML/mock ML skorunu al.
+6. `%30 + %70` hibrit nihai puanı hesapla.
+7. Doğru risk seviyesini göster.
+8. Erken uyarı oluştur.
+9. Uyarıdan bakım planı oluştur.
+10. Bakımı gerçekleştir ve kapat.
+11. ERP/mock ERP iş emri oluştur.
+12. Karar ve bakım geçmişini görüntüle.
+
+## 24.10 Son çıktı raporu
+
+Çalışma sonunda terminal/cevap özetinde şunları açıkça yaz:
+
+- `@FrontEnd` içinde hazır bulunan ekranlar
+- kısmen hazır olup tamamlanan ekranlar
+- sıfırdan geçici oluşturulan ekranlar
+- dokunulmayan frontend dosyaları
+- oluşturulan/değiştirilen dosyalar
+- kullanılan route ve endpointler
+- mock ile çalışan alanlar
+- gerçek entegrasyon bekleyen alanlar
+- frontend takım arkadaşının daha sonra değiştirmesi gereken yerler
+- build ve test sonuçları
+- bilinen eksikler
+
+# 25. ÖNCELİK SIRASI
+
+Çalışmayı şu sırayla yap:
+
+1. Repository ve `@FrontEnd` analizi
+2. Mevcut projenin build edilmesi
+3. Backend çekirdek mimarisi ve veritabanı uyumluluğu
+4. Risk sınıflandırması ve algoritmik/hibrit hesap
+5. ML ve ERP adapter yapıları
+6. API/MVC controller ve servisler
+7. Hazır frontend parçalarının entegrasyonu
+8. Eksik ekranların geçici ve çalışan frontend ile tamamlanması
+9. Swagger, geliştirici test paneli ve seed verileri
+10. Unit/integration/UI smoke testleri
+11. Dokümantasyon ve son rapor
+
+Bu görevde amaç yalnızca güzel görünen ekran üretmek değildir. Amaç, frontend tamamlanana kadar bütün backend özelliklerinin gerçek servisler üzerinden test edilebildiği, daha sonra frontend takım arkadaşının çalışmasıyla kolayca birleştirilebilen, derlenebilir ve çalıştırılabilir bir **OnleyiciBakim** uygulaması teslim etmektir.

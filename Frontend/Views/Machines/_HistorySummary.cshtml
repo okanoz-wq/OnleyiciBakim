@@ -1,0 +1,5 @@
+@model List<ManagedMachineHistoryViewModel>
+<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Tarih</th><th>Tür</th><th>Durum</th><th>Açıklama</th></tr></thead><tbody>
+@foreach(var x in Model){<tr><td>@x.Date.LocalDateTime.ToString("dd.MM.yyyy HH:mm")</td><td>@x.Type</td><td>@x.Status</td><td>@(x.Description ?? "—")</td></tr>}
+@if(Model.Count == 0){<tr><td colspan="4" class="text-muted">Kayıt bulunamadı.</td></tr>}
+</tbody></table></div>

@@ -1,0 +1,26 @@
+@model MachineDeleteViewModel
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content app-modal">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="deleteModalTitle"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Makineyi pasife al</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <form method="post" asp-controller="Machines" asp-action="DeleteConfirmed" data-modal-form>
+                @Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" />
+                <div class="modal-body">
+                    <p><strong>@Model.Code · @Model.Name</strong> makinesi pasife alınacak.</p>
+                    @if (Model.HasRelatedRecords)
+                    {
+                        <div class="alert alert-warning mb-0"><i class="bi bi-shield-exclamation me-1"></i>Bu makineye bağlı @Model.RelatedRecordCount kayıt bulundu. Veri bütünlüğü için kayıt silinmeyecek, yalnızca pasife alınacaktır.</div>
+                    }
+                    else { <p class="text-muted mb-0">Kayıt fiziksel olarak silinmez; gerektiğinde tekrar aktifleştirilebilir.</p> }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary-soft" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger" data-submit-button><span class="spinner-border spinner-border-sm d-none"></span><i class="bi bi-power"></i> Pasife Al</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,5 @@
+@model MaintenancePlanItem
+<div class="modal fade" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Bakım Planı Detayı</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
+    <div class="modal-body"><dl class="row"><dt class="col-5">Makine</dt><dd class="col-7">@Model.MachineName</dd><dt class="col-5">Planlanan tarih</dt><dd class="col-7">@Model.PlannedDate.ToString("g")</dd><dt class="col-5">Bakım türü</dt><dd class="col-7">@Model.Type</dd><dt class="col-5">Nihai risk</dt><dd class="col-7">@Model.PredictedRiskScore.ToString("0.##")</dd><dt class="col-5">Model güveni</dt><dd class="col-7">@(Model.Confidence?.ToString("0.#") ?? "—")</dd><dt class="col-5">Durum</dt><dd class="col-7">@Model.Status</dd><dt class="col-5">Öneri</dt><dd class="col-7">@Model.RecommendedAction</dd></dl></div>
+</div></div></div>

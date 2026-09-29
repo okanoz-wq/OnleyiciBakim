@@ -1,0 +1,9 @@
+@model (DefinitionMetadataViewModel Metadata, DefinitionRowViewModel Row)
+<div class="modal fade" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
+    <form asp-controller="Definitions" asp-action="DeleteConfirmed" method="post" data-modal-form data-refresh-target="definitionTableRegion" data-refresh-url="@Url.Action("Table", new { module = Model.Metadata.Module })">
+        @Html.AntiForgeryToken()<input type="hidden" name="module" value="@Model.Metadata.Module" /><input type="hidden" name="id" value="@Model.Row.Id" />
+        <div class="modal-header"><h5 class="modal-title">Kaydı Pasife Al</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
+        <div class="modal-body"><p><strong>@Model.Row.Code — @Model.Row.Name</strong> pasife alınacak.</p><div class="alert alert-warning mb-0">Bağlı veriler fiziksel olarak silinmez; kayıt seçim listelerinden kaldırılır.</div></div>
+        <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Vazgeç</button><button type="submit" class="btn btn-danger" data-submit-button>Pasife Al</button></div>
+    </form>
+</div></div></div>

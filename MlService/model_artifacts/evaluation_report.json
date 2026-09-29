@@ -1,0 +1,274 @@
+{
+  "dataset": {
+    "path": "data/11_ml_egitim_verisi.csv",
+    "rows": 4700,
+    "machines": 100,
+    "dateMin": "2015-01-08T06:00:00",
+    "dateMax": "2015-11-26T06:00:00"
+  },
+  "randomSplit": {
+    "rowCount": 940,
+    "positiveRate": 0.509574,
+    "rocAuc": 0.748677,
+    "precision": 0.720096,
+    "recall": 0.628392,
+    "f1": 0.671126,
+    "brierScore": 0.206513,
+    "logLoss": 0.600757,
+    "confusionMatrix": [
+      [
+        344,
+        117
+      ],
+      [
+        178,
+        301
+      ]
+    ],
+    "trainRowCount": 3760,
+    "trainDateMax": "2015-11-26T06:00:00",
+    "testDateMin": "2015-01-08T06:00:00"
+  },
+  "timeSplit": {
+    "rowCount": 1000,
+    "positiveRate": 0.503,
+    "rocAuc": 0.679016,
+    "precision": 0.65098,
+    "recall": 0.66004,
+    "f1": 0.655479,
+    "brierScore": 0.226801,
+    "logLoss": 0.646694,
+    "confusionMatrix": [
+      [
+        319,
+        178
+      ],
+      [
+        171,
+        332
+      ]
+    ],
+    "trainRowCount": 3700,
+    "trainDateMax": "2015-09-17T06:00:00",
+    "testDateMin": "2015-09-24T06:00:00"
+  },
+  "timeSeriesSplit": [
+    {
+      "rowCount": 700,
+      "positiveRate": 0.495714,
+      "rocAuc": 0.693096,
+      "precision": 0.62069,
+      "recall": 0.674352,
+      "f1": 0.646409,
+      "brierScore": 0.224281,
+      "logLoss": 0.639164,
+      "confusionMatrix": [
+        [
+          210,
+          143
+        ],
+        [
+          113,
+          234
+        ]
+      ],
+      "trainRowCount": 1200,
+      "trainDateMax": "2015-03-26T06:00:00",
+      "testDateMin": "2015-04-02T06:00:00"
+    },
+    {
+      "rowCount": 700,
+      "positiveRate": 0.491429,
+      "rocAuc": 0.683678,
+      "precision": 0.605898,
+      "recall": 0.656977,
+      "f1": 0.630404,
+      "brierScore": 0.224059,
+      "logLoss": 0.638536,
+      "confusionMatrix": [
+        [
+          209,
+          147
+        ],
+        [
+          118,
+          226
+        ]
+      ],
+      "trainRowCount": 1900,
+      "trainDateMax": "2015-05-14T06:00:00",
+      "testDateMin": "2015-05-21T06:00:00"
+    },
+    {
+      "rowCount": 700,
+      "positiveRate": 0.514286,
+      "rocAuc": 0.701046,
+      "precision": 0.653631,
+      "recall": 0.65,
+      "f1": 0.651811,
+      "brierScore": 0.219571,
+      "logLoss": 0.629227,
+      "confusionMatrix": [
+        [
+          216,
+          124
+        ],
+        [
+          126,
+          234
+        ]
+      ],
+      "trainRowCount": 2600,
+      "trainDateMax": "2015-07-02T06:00:00",
+      "testDateMin": "2015-07-09T06:00:00"
+    },
+    {
+      "rowCount": 700,
+      "positiveRate": 0.505714,
+      "rocAuc": 0.688286,
+      "precision": 0.660661,
+      "recall": 0.621469,
+      "f1": 0.640466,
+      "brierScore": 0.225511,
+      "logLoss": 0.644016,
+      "confusionMatrix": [
+        [
+          233,
+          113
+        ],
+        [
+          134,
+          220
+        ]
+      ],
+      "trainRowCount": 3300,
+      "trainDateMax": "2015-08-20T06:00:00",
+      "testDateMin": "2015-08-27T06:00:00"
+    },
+    {
+      "rowCount": 700,
+      "positiveRate": 0.495714,
+      "rocAuc": 0.690198,
+      "precision": 0.649315,
+      "recall": 0.682997,
+      "f1": 0.66573,
+      "brierScore": 0.223626,
+      "logLoss": 0.639434,
+      "confusionMatrix": [
+        [
+          225,
+          128
+        ],
+        [
+          110,
+          237
+        ]
+      ],
+      "trainRowCount": 4000,
+      "trainDateMax": "2015-10-08T06:00:00",
+      "testDateMin": "2015-10-15T06:00:00"
+    }
+  ],
+  "timeSeriesSplitAverage": {
+    "rocAuc": 0.691261,
+    "precision": 0.638039,
+    "recall": 0.657159,
+    "f1": 0.646964,
+    "brierScore": 0.22341,
+    "logLoss": 0.638075
+  },
+  "unseenMachine": {
+    "rowCount": 940,
+    "positiveRate": 0.502128,
+    "rocAuc": 0.606847,
+    "precision": 0.573386,
+    "recall": 0.620763,
+    "f1": 0.596134,
+    "brierScore": 0.24443,
+    "logLoss": 0.682179,
+    "confusionMatrix": [
+      [
+        250,
+        218
+      ],
+      [
+        179,
+        293
+      ]
+    ],
+    "trainRowCount": 3760,
+    "trainDateMax": "2015-11-26T06:00:00",
+    "testDateMin": "2015-01-08T06:00:00",
+    "testMachineCount": 20
+  },
+  "calibration": {
+    "raw": {
+      "rowCount": 1000,
+      "positiveRate": 0.503,
+      "rocAuc": 0.679016,
+      "precision": 0.65098,
+      "recall": 0.66004,
+      "f1": 0.655479,
+      "brierScore": 0.226801,
+      "logLoss": 0.646694,
+      "confusionMatrix": [
+        [
+          319,
+          178
+        ],
+        [
+          171,
+          332
+        ]
+      ]
+    },
+    "sigmoidCalibrated": {
+      "rowCount": 1000,
+      "positiveRate": 0.503,
+      "rocAuc": 0.678312,
+      "precision": 0.64781,
+      "recall": 0.705765,
+      "f1": 0.675547,
+      "brierScore": 0.226665,
+      "logLoss": 0.645386,
+      "confusionMatrix": [
+        [
+          304,
+          193
+        ],
+        [
+          148,
+          355
+        ]
+      ]
+    },
+    "calibrationCurve": {
+      "meanPredictedProbability": [
+        0.288772,
+        0.354894,
+        0.398762,
+        0.448193,
+        0.499228,
+        0.554444,
+        0.610857,
+        0.655925,
+        0.694718,
+        0.752694
+      ],
+      "fractionOfPositives": [
+        0.39,
+        0.34,
+        0.27,
+        0.37,
+        0.33,
+        0.58,
+        0.66,
+        0.57,
+        0.77,
+        0.75
+      ]
+    },
+    "selected": "sigmoid",
+    "selectionRule": "Lower Brier score without more than 0.01 log-loss degradation."
+  }
+}

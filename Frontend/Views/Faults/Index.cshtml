@@ -1,0 +1,118 @@
+@model FaultHistoryViewModel
+@{
+    ViewData["Title"] = "Arıza Geçmişi";
+}
+
+<div class="filter-bar reveal">
+    <form method="get" asp-controller="Faults" asp-action="Index" class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label small text-muted fw-semibold">Makine</label>
+            <select name="machineId" class="form-select" onchange="this.form.submit()">
+                <option value="">Tümü</option>
+                @foreach (var m in Model.Machines)
+                {
+                    if (Model.SelectedMachineId == m.Id)
+                    {
+                        <option value="@m.Id" selected>@m.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@m.Id">@m.Name</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small text-muted fw-semibold">Arıza Türü</label>
+            <select name="faultType" class="form-select" onchange="this.form.submit()">
+                <option value="Tümü">Tümü</option>
+                @foreach (var t in Model.FaultTypes)
+                {
+                    if (Model.SelectedFaultType == t)
+                    {
+                        <option value="@t" selected>@t</option>
+                    }
+                    else
+                    {
+                        <option value="@t">@t</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small text-muted fw-semibold">Önem Derecesi</label>
+            <select name="severity" class="form-select" onchange="this.form.submit()">
+                <option value="Tümü">Tümü</option>
+                @foreach (var s in Model.Severities)
+                {
+                    if (Model.SelectedSeverity == s)
+                    {
+                        <option value="@s" selected>@s</option>
+                    }
+                    else
+                    {
+                        <option value="@s">@s</option>
+                    }
+                }
+            </select>
+        </div>
+    </form>
+</div>
+
+<div class="surface-card reveal">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="section-title mb-0"><i class="bi bi-list-ul"></i> Arıza Kayıtları (@Model.Pagination.TotalCount)</div>
+        <a class="btn btn-primary-soft btn-sm" asp-controller="Faults" asp-action="Index">
+            <i class="bi bi-x-circle"></i> Filtreleri Temizle
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>Tarih</th>
+                    <th>Makine</th>
+                    <th>Tür</th>
+                    <th>Önem</th>
+                    <th>Duruş (sa)</th>
+                    <th>Teknisyen</th>
+                    <th>Durum</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Faults.Count == 0)
+            {
+                <tr><td colspan="7" class="text-muted">Filtreye uyan arıza kaydı bulunamadı.</td></tr>
+            }
+            @foreach (var f in Model.Faults)
+            {
+                var sevPill = f.Severity switch
+                {
+                    "Kritik" => "pill-danger",
+                    "Yüksek" => "pill-warn",
+                    _ => "pill-muted",
+                };
+                <tr class="reveal">
+                    <td>@f.Date.ToString("dd.MM.yyyy")</td>
+                    <td><a asp-controller="Machines" asp-action="Details" asp-route-id="@f.MachineId" class="fw-semibold">@f.MachineName</a></td>
+                    <td>@f.FaultType</td>
+                    <td><span class="pill @sevPill">@f.Severity</span></td>
+                    <td>@f.DowntimeHours</td>
+                    <td>@f.Technician</td>
+                    <td>
+                        @if (f.Resolved)
+                        {
+                            <span class="pill pill-ok">Çözüldü</span>
+                        }
+                        else
+                        {
+                            <span class="pill pill-muted">Açık</span>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pagination" model="Model.Pagination" />
+</div>

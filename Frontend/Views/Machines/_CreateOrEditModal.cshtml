@@ -1,0 +1,26 @@
+@model MachineFormViewModel
+<div class="modal fade" id="machineModal" tabindex="-1" aria-labelledby="machineModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content app-modal">
+            <form id="machineForm" method="post" asp-controller="Machines" asp-action="@(Model.IsEdit ? "Edit" : "Create")" data-modal-form>
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title fw-bold" id="machineModalTitle"><i class="bi bi-gear-wide-connected text-primary me-2"></i>@(Model.IsEdit ? "Makineyi Düzenle" : "Yeni Makine Ekle")</h5>
+                        <div class="small text-muted mt-1">Makine kimliği ve organizasyon bilgilerini girin.</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <input asp-for="Id" type="hidden" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger validation-summary-valid" role="alert"></div>
+                    <partial name="_MachineFormFields" model="Model" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary-soft" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-brand" data-submit-button><span class="spinner-border spinner-border-sm d-none" aria-hidden="true"></span><i class="bi bi-check2"></i> Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

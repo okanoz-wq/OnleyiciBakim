@@ -1,0 +1,98 @@
+@model OnleyiciBakim.ViewModels.DevTestViewModel
+@{
+    ViewData["Title"] = "Backend Test Paneli";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Backend Test Paneli</h1>
+            <p class="text-muted mb-0">Yalnızca Development ortamında çalışır; işlemler gerçek servis ve API katmanını kullanır.</p>
+        </div>
+        <a class="btn btn-outline-primary" href="/swagger">Swagger</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="card card-body"><strong>Makine</strong><span class="fs-2">@Model.TotalMachines</span></div></div>
+        <div class="col-md-4"><div class="card card-body"><strong>Açık arıza</strong><span class="fs-2">@Model.OpenFailures</span></div></div>
+        <div class="col-md-4"><div class="card card-body"><strong>Bekleyen bakım</strong><span class="fs-2">@Model.PendingMaintenance</span></div></div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Health / readiness</div>
+        <div class="card-body"><pre id="health">Yükleniyor…</pre></div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header">Makine ve hibrit analiz</div>
+                <div class="card-body">
+                    @Html.AntiForgeryToken()
+                    <div class="input-group mb-3">
+                        <select id="machineId" class="form-select">
+                            @foreach (var machine in Model.Machines)
+                            {
+                                <option value="@machine.Id">@machine.Code — @machine.Name (@machine.RiskScore)</option>
+                            }
+                        </select>
+                        <select id="scenario" class="form-select">
+                            <option value="success">ML başarı</option>
+                            <option value="timeout">ML timeout</option>
+                            <option value="unavailable">ML kapalı</option>
+                            <option value="invalid-score">ML hatalı skor</option>
+                        </select>
+                        <button id="runRisk" class="btn btn-primary" type="button">Analizi çalıştır</button>
+                    </div>
+                    <pre id="riskResult">Bir makine seçip analizi çalıştırın.</pre>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header">Kesin sınır değerleri</div>
+                <table class="table mb-0">
+                    <thead><tr><th>Puan</th><th>Seviye</th><th>Renk anahtarı</th></tr></thead>
+                    <tbody>
+                    @foreach (var item in Model.Boundaries)
+                    {
+                        <tr><td>@item.Score</td><td>@item.Level</td><td><code>@item.ColorKey</code></td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">Hızlı API bağlantıları</div>
+        <div class="card-body d-flex flex-wrap gap-2">
+            <a class="btn btn-sm btn-outline-secondary" href="/api/v1/dashboard">Dashboard JSON</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/api/v1/machines">Makineler</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/api/v1/failures">Arızalar</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/api/v1/maintenance/plans">Bakım planları</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/api/v1/risks/history">Karar geçmişi</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/health/ready">Readiness</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const pretty = value => JSON.stringify(value, null, 2);
+    fetch('/health/ready').then(r => r.json()).then(x => health.textContent = pretty(x))
+        .catch(e => health.textContent = e.message);
+    document.getElementById('runRisk').addEventListener('click', async () => {
+        const id = document.getElementById('machineId').value;
+        const scenario = document.getElementById('scenario').value;
+        riskResult.textContent = 'Çalışıyor…';
+        const response = await fetch(`/api/v1/risks/machines/${encodeURIComponent(id)}/evaluate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Correlation-ID': crypto.randomUUID() },
+            body: JSON.stringify({ mockScenario: scenario })
+        });
+        const body = await response.json();
+        riskResult.textContent = pretty(body);
+    });
+</script>
+}

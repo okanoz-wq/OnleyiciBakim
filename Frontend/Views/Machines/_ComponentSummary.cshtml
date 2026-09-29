@@ -1,0 +1,5 @@
+@model List<ManagedMachineComponentViewModel>
+<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Kod</th><th>Ad</th><th>Tür</th><th>Kritiklik</th><th>Durum</th></tr></thead><tbody>
+@foreach(var x in Model){<tr><td>@x.Code</td><td>@x.Name</td><td>@(x.Type ?? "—")</td><td>@(x.Criticality ?? "—")</td><td><span class="pill @(x.IsActive ? "pill-ok" : "pill-neutral")">@(x.IsActive ? "Aktif" : "Pasif")</span></td></tr>}
+@if(Model.Count == 0){<tr><td colspan="5" class="text-muted">Bileşen kaydı bulunamadı.</td></tr>}
+</tbody></table></div>
